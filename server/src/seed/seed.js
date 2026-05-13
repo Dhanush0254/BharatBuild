@@ -43,20 +43,14 @@ const jitter = (val) => val + (Math.random() - 0.5) * 0.04;
 
 // ── Listing Templates ────────────────────────────────────────────────────────
 const workerTemplates = [
-  { sub: 'mestri', title: 'Experienced Mestri for Construction Work', price: [700, 1000], unit: 'per day', meta: { experience: '8 years', specialization: 'Residential construction' } },
-  { sub: 'mestri', title: 'Professional Mason / Mestri Available', price: [800, 1200], unit: 'per day', meta: { experience: '12 years', specialization: 'Commercial buildings' } },
-  { sub: 'helper', title: 'Construction Helper Available for Daily Wage', price: [400, 600], unit: 'per day', meta: { experience: '3 years' } },
-  { sub: 'helper', title: 'Reliable Construction Labour Available', price: [450, 550], unit: 'per day', meta: { experience: '5 years' } },
+  { sub: 'construction', title: 'Experienced Worker for Construction Work', price: [700, 1000], unit: 'per day', meta: { experience: '8 years', specialization: 'Residential construction' } },
+  { sub: 'construction', title: 'Professional Mason / Worker Available', price: [800, 1200], unit: 'per day', meta: { experience: '12 years', specialization: 'Commercial buildings' } },
+  { sub: 'destruction', title: 'Building Demolition & Destruction Team', price: [1500, 2500], unit: 'per day', meta: { experience: '5 years' } },
+  { sub: 'destruction', title: 'Reliable Labour for Demolition & Debris Removal', price: [600, 900], unit: 'per day', meta: { experience: '7 years' } },
   { sub: 'electrician', title: 'Licensed Electrician — Wiring & Repairs', price: [600, 900], unit: 'per day', meta: { experience: '7 years', certification: 'Government Licensed' } },
   { sub: 'electrician', title: 'Electrical Contractor for New Construction', price: [700, 1100], unit: 'per day', meta: { experience: '10 years', certification: 'Certified' } },
   { sub: 'plumber', title: 'Expert Plumber — Pipeline & Fitting Work', price: [600, 850], unit: 'per day', meta: { experience: '6 years' } },
   { sub: 'plumber', title: 'Professional Plumber for Bathroom & Kitchen', price: [650, 900], unit: 'per day', meta: { experience: '8 years' } },
-  { sub: 'carpenter', title: 'Skilled Carpenter — Furniture & Woodwork', price: [700, 1000], unit: 'per day', meta: { experience: '10 years', specialization: 'Door frames & windows' } },
-  { sub: 'carpenter', title: 'Wooden Door & Window Frame Specialist', price: [750, 1100], unit: 'per day', meta: { experience: '15 years' } },
-  { sub: 'painter', title: 'House Painting — Interior & Exterior', price: [500, 800], unit: 'per day', meta: { experience: '6 years', type: 'Emulsion & texture' } },
-  { sub: 'painter', title: 'Professional Wall Painter with Texture Work', price: [600, 900], unit: 'per day', meta: { experience: '8 years' } },
-  { sub: 'welder', title: 'Welding & Fabrication Work Available', price: [700, 1000], unit: 'per day', meta: { experience: '9 years', type: 'Arc & gas welding' } },
-  { sub: 'welder', title: 'Gate & Grills Fabrication — Expert Welder', price: [750, 1100], unit: 'per day', meta: { experience: '11 years' } },
 ];
 
 const machineryTemplates = [
@@ -88,8 +82,12 @@ const materialTemplates = [
 ];
 
 const repairTemplates = [
-  { sub: 'AC repair', title: 'AC Repair & Service — All Brands', price: [500, 800], unit: 'per visit', meta: { brands: 'All brands', type: 'Split & Window AC' } },
-  { sub: 'AC repair', title: 'AC Installation & Gas Refill', price: [1000, 2000], unit: 'per unit', meta: { service: 'Installation + Gas refill' } },
+  { sub: 'TV', title: 'LED/LCD TV Repair — Home Service', price: [500, 1200], unit: 'per visit', meta: { brands: 'Samsung, LG, Sony' } },
+  { sub: 'TV', title: 'Smart TV Screen Repair & Panel Fix', price: [1500, 3000], unit: 'per job', meta: { experience: '6 years' } },
+  { sub: 'refrigerator', title: 'Refrigerator & Fridge Repair Specialist', price: [600, 1500], unit: 'per visit', meta: { brands: 'Whirlpool, LG, Godrej' } },
+  { sub: 'mixer', title: 'Mixer Grinder Repair & Spares', price: [200, 600], unit: 'per visit', meta: { brands: 'Preethi, Bajaj, Sujata' } },
+  { sub: 'AC', title: 'AC Repair & Service — All Brands', price: [500, 800], unit: 'per visit', meta: { brands: 'All brands', type: 'Split & Window AC' } },
+  { sub: 'AC', title: 'AC Installation & Gas Refill', price: [1000, 2000], unit: 'per unit', meta: { service: 'Installation + Gas refill' } },
   { sub: 'electrical repair', title: 'Home Electrical Repair — Wiring & Switches', price: [300, 600], unit: 'per visit', meta: { type: 'Residential', experience: '5 years' } },
   { sub: 'electrical repair', title: 'Electrical Fault Finding & Repair', price: [400, 700], unit: 'per visit', meta: { type: 'Residential & Commercial' } },
   { sub: 'plumbing repair', title: 'Plumbing Repair — Leakage & Blockage Fix', price: [300, 500], unit: 'per visit', meta: { type: 'Emergency service available' } },
