@@ -8,22 +8,34 @@ const MapBounds = ({ listings, userLocation }) => {
   const map = useMap();
 
   useEffect(() => {
-    const isValidNum = (n) => typeof n === 'number' && !isNaN(n);
+    const isValidNum = (n) => typeof n === 'number' && isFinite(n);
 
-    if (userLocation && isValidNum(userLocation.lat) && isValidNum(userLocation.lng)) {
-      // User requested: ALWAYS center exactly on the user's location
-      map.flyTo([userLocation.lat, userLocation.lng], 13, { duration: 1.5 });
-    } else if (listings && listings.length > 0) {
-      // Fallback: If no user location, frame all listings with valid coordinates
-      const bounds = listings
-        .filter(l => l.location?.coordinates && isValidNum(l.location.coordinates[0]) && isValidNum(l.location.coordinates[1]))
-        .map(l => [l.location.coordinates[1], l.location.coordinates[0]]);
-      
-      if (bounds.length === 1) {
-        map.flyTo(bounds[0], 13, { duration: 1.5 });
-      } else if (bounds.length > 1) {
-        map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
+    try {
+      if (userLocation && isValidNum(userLocation.lat) && isValidNum(userLocation.lng)) {
+        map.flyTo([userLocation.lat, userLocation.lng], 13, { duration: 1.5 });
+      } else if (listings && listings.length > 0) {
+        const bounds = listings
+          .filter(l => l.location?.coordinates && isValidNum(l.location.coordinates[0]) && isValidNum(l.location.coordinates[1]))
+          .map(l => [l.location.coordinates[1], l.location.coordinates[0]]);
+        
+        if (bounds.length === 0) return;
+
+        if (bounds.length === 1) {
+          map.flyTo(bounds[0], 13, { duration: 1.5 });
+        } else {
+          // Check if all points are identical — flyToBounds crashes on zero-area bounds
+          const allSameLat = bounds.every(b => b[0] === bounds[0][0]);
+          const allSameLng = bounds.every(b => b[1] === bounds[0][1]);
+          if (allSameLat && allSameLng) {
+            map.flyTo(bounds[0], 13, { duration: 1.5 });
+          } else {
+            map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5, maxZoom: 16 });
+          }
+        }
       }
+    } catch (err) {
+      // Silently handle any Leaflet LatLng errors
+      console.warn('MapBounds: Could not adjust map view', err);
     }
   }, [listings, userLocation, map]);
 
