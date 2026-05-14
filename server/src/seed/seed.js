@@ -125,7 +125,7 @@ const reviewComments = [
 const buildListings = (templates, category, providerIds) => {
   const listings = [];
   templates.forEach((tpl) => {
-    const count = Math.random() > 0.5 ? 2 : 1;
+    const count = 3; // Guarantee 3 listings per template for rich data
     for (let i = 0; i < count; i++) {
       const loc = rand(locations);
       const provider = rand(providerIds);
