@@ -193,7 +193,7 @@ const SearchPage = () => {
   if (!apiParams.lat || !apiParams.lng) { delete apiParams.lat; delete apiParams.lng; delete apiParams.radius; }
   if (!apiParams.isVerified) delete apiParams.isVerified;
   if (!apiParams.isAvailable) delete apiParams.isAvailable;
-  apiParams.limit = 50;
+  apiParams.limit = 200;
   const { data, isLoading, error } = useSearchListings(apiParams);
 
   const listings = data?.listings || [];

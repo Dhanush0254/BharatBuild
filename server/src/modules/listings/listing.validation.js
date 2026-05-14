@@ -62,7 +62,7 @@ const searchQuerySchema = Joi.object({
   isVerified: Joi.string().valid('true', 'false').optional(),
   isAvailable: Joi.string().valid('true', 'false').optional(),
   page: Joi.number().integer().positive().default(1),
-  limit: Joi.number().integer().positive().max(50).default(12),
+  limit: Joi.number().integer().positive().max(200).default(12),
   sort: Joi.string().valid('newest', 'price_asc', 'price_desc', 'nearest').default('newest'),
 });
 
