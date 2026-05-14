@@ -249,7 +249,12 @@ export default ProviderDashboard;
 // Booking Card with expandable map
 const BookingCard = ({ booking: b, bookMut }) => {
   const [showMap, setShowMap] = useState(false);
-  const hasLocation = b.serviceLocation && b.serviceLocation.coordinates && b.serviceLocation.coordinates.length === 2;
+  const isValidNum = (n) => typeof n === 'number' && !isNaN(n);
+  const hasLocation = b.serviceLocation && 
+                    b.serviceLocation.coordinates && 
+                    b.serviceLocation.coordinates.length === 2 &&
+                    isValidNum(b.serviceLocation.coordinates[0]) &&
+                    isValidNum(b.serviceLocation.coordinates[1]);
   const position = hasLocation ? [b.serviceLocation.coordinates[1], b.serviceLocation.coordinates[0]] : null;
 
   return (

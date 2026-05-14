@@ -144,7 +144,10 @@ const ListingDetailPage = () => {
     );
   }
 
-  const position = listing.location?.coordinates ? [listing.location.coordinates[1], listing.location.coordinates[0]] : [17.385, 78.4867];
+  const isValidNum = (n) => typeof n === 'number' && !isNaN(n);
+  const position = (listing.location?.coordinates && isValidNum(listing.location.coordinates[0]) && isValidNum(listing.location.coordinates[1])) 
+    ? [listing.location.coordinates[1], listing.location.coordinates[0]] 
+    : [17.385, 78.4867];
   const reviews = reviewsData?.reviews || [];
 
   return (

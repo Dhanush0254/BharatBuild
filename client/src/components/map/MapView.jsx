@@ -8,15 +8,20 @@ const MapBounds = ({ listings, userLocation }) => {
   const map = useMap();
 
   useEffect(() => {
-    if (userLocation && userLocation.lat && userLocation.lng) {
+    const isValidNum = (n) => typeof n === 'number' && !isNaN(n);
+
+    if (userLocation && isValidNum(userLocation.lat) && isValidNum(userLocation.lng)) {
       // User requested: ALWAYS center exactly on the user's location
       map.flyTo([userLocation.lat, userLocation.lng], 13, { duration: 1.5 });
     } else if (listings && listings.length > 0) {
-      // Fallback: If no user location, frame all listings
-      const bounds = listings.map(l => [l.location.coordinates[1], l.location.coordinates[0]]);
+      // Fallback: If no user location, frame all listings with valid coordinates
+      const bounds = listings
+        .filter(l => l.location?.coordinates && isValidNum(l.location.coordinates[0]) && isValidNum(l.location.coordinates[1]))
+        .map(l => [l.location.coordinates[1], l.location.coordinates[0]]);
+      
       if (bounds.length === 1) {
         map.flyTo(bounds[0], 13, { duration: 1.5 });
-      } else {
+      } else if (bounds.length > 1) {
         map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
       }
     }
@@ -64,7 +69,13 @@ const MapView = ({ listings, hoveredListingId, userLocation }) => {
           </CircleMarker>
         )}
 
-        {listings?.map((listing) => {
+        {listings?.filter(l => 
+          l.location?.coordinates && 
+          typeof l.location.coordinates[0] === 'number' && 
+          typeof l.location.coordinates[1] === 'number' &&
+          !isNaN(l.location.coordinates[0]) &&
+          !isNaN(l.location.coordinates[1])
+        ).map((listing) => {
           const isHovered = listing._id === hoveredListingId;
           return (
             <CircleMarker 

@@ -271,8 +271,12 @@ export default SeekerDashboard;
 const SeekerBookingCard = ({ booking: b, cancelMut, setReviewBookingId }) => {
   const [showMap, setShowMap] = useState(false);
   // Provider's listing location
+  const isValidNum = (n) => typeof n === 'number' && !isNaN(n);
   const listingCoords = b.listing?.location?.coordinates;
-  const hasListingLocation = listingCoords && listingCoords.length === 2;
+  const hasListingLocation = listingCoords && 
+                           listingCoords.length === 2 && 
+                           isValidNum(listingCoords[0]) && 
+                           isValidNum(listingCoords[1]);
   const providerPos = hasListingLocation ? [listingCoords[1], listingCoords[0]] : null;
   // Show map button only for active bookings
   const showMapBtn = (b.status === 'accepted' || b.status === 'completed') && providerPos;
