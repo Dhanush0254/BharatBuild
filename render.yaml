@@ -38,17 +38,6 @@ services:
     rootDir: client
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: bharatbuild-api
-          property: host
-      - key: VITE_ML_URL
-        fromService:
-          type: web
-          name: bharatbuild-ml
-          property: host
     routes:
       - type: rewrite
         source: /*
