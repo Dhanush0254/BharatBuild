@@ -21,6 +21,16 @@ services:
       - key: CLOUDINARY_API_SECRET
         sync: false
 
+  # ML MICROSERVICE (Python FastAPI)
+  - type: web
+    name: bharatbuild-ml
+    env: python
+    plan: free
+    rootDir: ml-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+
+
   # FRONTEND STATIC SITE
   - type: web
     name: bharatbuild-client
@@ -33,6 +43,11 @@ services:
         fromService:
           type: web
           name: bharatbuild-api
+          property: host
+      - key: VITE_ML_URL
+        fromService:
+          type: web
+          name: bharatbuild-ml
           property: host
     routes:
       - type: rewrite
