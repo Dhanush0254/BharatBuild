@@ -30,8 +30,8 @@ const searchListings = async (query) => {
   // 2. $match filters
   const matchStage = { status: 'approved' };
 
-  if (category) matchStage.category = category;
-  if (subCategory) matchStage.subCategory = subCategory;
+  if (category) matchStage.category = new RegExp(`^${category}$`, 'i');
+  if (subCategory) matchStage.subCategory = new RegExp(subCategory, 'i');
   if (area) matchStage['address.area'] = new RegExp(area, 'i');
   if (district) matchStage['address.district'] = new RegExp(district, 'i');
 
