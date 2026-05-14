@@ -49,6 +49,15 @@ app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/ai', aiRoutes);
 
+// Root Route
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'BharatBuild API is running. Use /api/v1 for endpoints.',
+    env: env.env
+  });
+});
+
 // ── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {
   res.status(404).json({
