@@ -38,9 +38,9 @@ metadata = None
 try:
     material_model = joblib.load(os.path.join(MODEL_DIR, "material_estimator.pkl"))
     metadata = joblib.load(os.path.join(MODEL_DIR, "metadata.pkl"))
-    print("✅ Material estimator model loaded")
+    print("[OK] Material estimator model loaded")
 except Exception as e:
-    print(f"⚠️ Could not load model: {e}")
+    print(f"[WARNING] Could not load model: {e}")
     print("   Run `python train_model.py` first!")
 
 

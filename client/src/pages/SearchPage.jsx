@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSearchListings } from '../hooks/useListings';
 import { parseAISearch } from '../api/aiApi';
-import { Filter, Map as MapIcon, List as ListIcon, X, Search as SearchIcon, SlidersHorizontal, MapPin, IndianRupee, ShieldCheck, Sparkles, Loader2 } from 'lucide-react';
+import { Filter, Map as MapIcon, List as ListIcon, X, Search as SearchIcon, SlidersHorizontal, MapPin, IndianRupee, ShieldCheck, Sparkles, Loader2, Mic, MicOff } from 'lucide-react';
 import ListingCard from '../components/listings/ListingCard';
 import MapView from '../components/map/MapView';
 import StarRating from '../components/ui/StarRating';
@@ -25,6 +25,41 @@ const SearchPage = () => {
   const [aiMode, setAiMode] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
   const [isAiParsing, setIsAiParsing] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  const startListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Your browser does not support voice search.");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-IN'; // Works for Indian accents and mixed Telugu/Hindi
+    
+    recognition.onstart = () => {
+      setIsListening(true);
+      setAiMode(true); // Switch to AI mode since voice naturally produces complex queries
+    };
+    
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setAiQuery(transcript);
+      setIsListening(false);
+    };
+    
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+    
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+    
+    recognition.start();
+  };
 
   // Parse filters from URL
   const initialFilters = {
@@ -166,14 +201,20 @@ const SearchPage = () => {
               {aiMode ? (
                 <>
                   <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" size={18} />
-                  <input type="text" placeholder='e.g., "I need 2 electricians tomorrow near Miyapur"' className="form-input pl-10 h-12 w-full border-indigo-200 focus:border-indigo-500 focus:ring-indigo-500/20 bg-indigo-50/30"
+                  <input type="text" placeholder='e.g., "I need 2 electricians tomorrow near Miyapur"' className="form-input pl-10 pr-10 h-12 w-full border-indigo-200 focus:border-indigo-500 focus:ring-indigo-500/20 bg-indigo-50/30"
                     value={aiQuery} onChange={(e) => setAiQuery(e.target.value)} disabled={isAiParsing} />
+                  <button type="button" onClick={startListening} className={`absolute right-3 top-1/2 -translate-y-1/2 ${isListening ? 'text-red-500 animate-pulse' : 'text-indigo-400 hover:text-indigo-600'}`}>
+                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  </button>
                 </>
               ) : (
                 <>
                   <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                  <input type="text" placeholder="Search workers, machinery..." className="form-input pl-10 h-12 w-full"
+                  <input type="text" placeholder="Search workers, machinery..." className="form-input pl-10 pr-10 h-12 w-full"
                     value={filters.search} onChange={(e) => handleFilterChange('search', e.target.value)} />
+                  <button type="button" onClick={startListening} className={`absolute right-3 top-1/2 -translate-y-1/2 ${isListening ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-slate-600'}`}>
+                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  </button>
                 </>
               )}
             </div>
