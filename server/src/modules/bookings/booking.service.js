@@ -26,6 +26,12 @@ const createBooking = async (data, seekerId) => {
     throw new ApiError(400, 'These dates are already booked. Please choose different dates.');
   }
 
+  // Build serviceLocation if provided
+  const serviceLocationData = data.serviceLocation ? {
+    type: 'Point',
+    coordinates: [data.serviceLocation.lng, data.serviceLocation.lat],
+  } : undefined;
+
   const booking = await Booking.create({
     listing: listing._id,
     seeker: seekerId,
@@ -35,6 +41,8 @@ const createBooking = async (data, seekerId) => {
     notes: data.notes || '',
     isRebooking: data.isRebooking || false,
     previousBooking: data.previousBooking || undefined,
+    serviceLocation: serviceLocationData,
+    serviceAddress: data.serviceAddress || '',
   });
 
   return booking;
@@ -71,7 +79,7 @@ const getSeekerBookings = async (seekerId, { status, page = 1, limit = 10 }) => 
 
   const [bookings, total] = await Promise.all([
     Booking.find(filter)
-      .populate('listing', 'title category subCategory pricing address images workerStatus ratings')
+      .populate('listing', 'title category subCategory pricing address images workerStatus ratings location')
       .populate('provider', 'name phone profileImage')
       .sort({ createdAt: -1 })
       .skip(skip)

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { getMyListings, createListing, deleteListing, uploadListingImages } from '../api/listingsApi';
@@ -11,7 +12,7 @@ import StarRating from '../components/ui/StarRating';
 import toast from 'react-hot-toast';
 import {
   LayoutDashboard, List, PlusCircle, MessageCircle, User, CalendarCheck,
-  IndianRupee, MapPin, Trash2, Eye, CheckCircle, XCircle, Star, Send
+  IndianRupee, MapPin, Trash2, Eye, CheckCircle, XCircle, Star, Send, Navigation
 } from 'lucide-react';
 
 const subCats = {
@@ -102,26 +103,7 @@ const ProviderDashboard = () => {
           <div className="space-y-4">
             {bookings.length===0?<div className="card p-12 text-center"><div className="text-5xl mb-4">📅</div><h3 className="font-bold text-lg">No booking requests yet</h3></div>:
             bookings.map(b=>(
-              <div key={b._id} className="card p-5">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1"><h3 className="font-bold truncate">{b.listing?.title}</h3><span className={sc[b.status]}>{b.status}</span></div>
-                    <div className="flex flex-wrap gap-3 text-xs text-text-muted">
-                      <span><User size={11} className="inline mr-1"/>{b.seeker?.name} • {b.seeker?.phone}</span>
-                      <span className="flex items-center gap-1"><IndianRupee size={11}/>{b.totalAmount?.toLocaleString('en-IN')}</span>
-                      <span>{new Date(b.dates?.start).toLocaleDateString('en-IN')} → {new Date(b.dates?.end).toLocaleDateString('en-IN')}</span>
-                    </div>
-                    {b.notes && <p className="text-xs text-text-secondary mt-1 bg-slate-50 rounded px-2 py-1">"{b.notes}"</p>}
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    {b.status==='pending'&&<>
-                      <button onClick={()=>bookMut.mutate({id:b._id,status:'accepted'})} className="btn-primary btn-sm"><CheckCircle size={14}/>Accept</button>
-                      <button onClick={()=>bookMut.mutate({id:b._id,status:'rejected'})} className="btn-ghost btn-sm text-red-500"><XCircle size={14}/>Reject</button>
-                    </>}
-                    {b.status==='accepted'&&<button onClick={()=>bookMut.mutate({id:b._id,status:'completed'})} className="btn-primary btn-sm"><CheckCircle size={14}/>Complete</button>}
-                  </div>
-                </div>
-              </div>
+              <BookingCard key={b._id} booking={b} bookMut={bookMut} />
             ))}
           </div>
         )}
@@ -263,3 +245,51 @@ const CreateForm = ({onDone}) => {
 };
 
 export default ProviderDashboard;
+
+// Booking Card with expandable map
+const BookingCard = ({ booking: b, bookMut }) => {
+  const [showMap, setShowMap] = useState(false);
+  const hasLocation = b.serviceLocation && b.serviceLocation.coordinates && b.serviceLocation.coordinates.length === 2;
+  const position = hasLocation ? [b.serviceLocation.coordinates[1], b.serviceLocation.coordinates[0]] : null;
+
+  return (
+    <div className="card p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1"><h3 className="font-bold truncate">{b.listing?.title}</h3><span className={sc[b.status]}>{b.status}</span></div>
+          <div className="flex flex-wrap gap-3 text-xs text-text-muted">
+            <span><User size={11} className="inline mr-1"/>{b.seeker?.name} • {b.seeker?.phone}</span>
+            <span className="flex items-center gap-1"><IndianRupee size={11}/>{b.totalAmount?.toLocaleString('en-IN')}</span>
+            <span>{new Date(b.dates?.start).toLocaleDateString('en-IN')} → {new Date(b.dates?.end).toLocaleDateString('en-IN')}</span>
+          </div>
+          {b.notes && <p className="text-xs text-text-secondary mt-2 bg-slate-50 rounded-lg px-3 py-2">"{b.notes}"</p>}
+          {b.serviceAddress && <p className="text-xs text-text-secondary mt-1 bg-blue-50 rounded-lg px-3 py-2 flex items-center gap-1"><MapPin size={11} className="text-blue-500 shrink-0"/>{b.serviceAddress}</p>}
+        </div>
+        <div className="flex flex-col gap-2 shrink-0">
+          {b.status==='pending'&&<>
+            <button onClick={()=>bookMut.mutate({id:b._id,status:'accepted'})} className="btn-primary btn-sm"><CheckCircle size={14}/>Accept</button>
+            <button onClick={()=>bookMut.mutate({id:b._id,status:'rejected'})} className="btn-ghost btn-sm text-red-500"><XCircle size={14}/>Reject</button>
+          </>}
+          {b.status==='accepted'&&<button onClick={()=>bookMut.mutate({id:b._id,status:'completed'})} className="btn-primary btn-sm"><CheckCircle size={14}/>Complete</button>}
+          {(b.status === 'accepted' || b.status === 'pending') && hasLocation && (
+            <button onClick={() => setShowMap(!showMap)} className="btn-secondary btn-sm">
+              <Navigation size={14} />{showMap ? 'Hide Map' : 'View Location'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Expandable Map */}
+      {showMap && position && (
+        <div className="mt-4 rounded-xl overflow-hidden border border-border" style={{ height: '250px' }}>
+          <MapContainer center={position} zoom={15} className="h-full w-full z-0" scrollWheelZoom={false}>
+            <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <CircleMarker center={position} radius={12} pathOptions={{ color: '#ffffff', weight: 3, fillColor: '#ea580c', fillOpacity: 1 }}>
+              <Popup><div className="font-semibold text-sm">📍 Client's Service Location</div><p className="text-xs text-text-muted mt-1">{b.serviceAddress || b.notes}</p></Popup>
+            </CircleMarker>
+          </MapContainer>
+        </div>
+      )}
+    </div>
+  );
+};

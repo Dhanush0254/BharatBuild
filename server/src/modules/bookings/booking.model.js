@@ -56,6 +56,20 @@ const bookingSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    // V3: Service location — seeker's GPS so provider can navigate
+    serviceLocation: {
+      type: {
+        type: String,
+        enum: ['Point'],
+      },
+      coordinates: {
+        type: [Number], // [lng, lat]
+      },
+    },
+    serviceAddress: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { getSeekerBookings, cancelBooking, rebookWorker } from '../api/bookingsApi';
@@ -13,7 +14,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   LayoutDashboard, CalendarCheck, Heart, MessageCircle, Clock, RefreshCw,
-  MapPin, IndianRupee, ExternalLink, X, User, XCircle, Send, CheckCircle, Star
+  MapPin, IndianRupee, ExternalLink, X, User, XCircle, Send, CheckCircle, Star, Navigation
 } from 'lucide-react';
 
 const statusColors = { pending:'badge-amber', accepted:'badge-green', rejected:'badge-red', completed:'badge-blue', cancelled:'badge-slate', responded:'badge-green', closed:'badge-slate' };
@@ -99,35 +100,7 @@ const SeekerDashboard = () => {
                 <Link to="/search" className="btn-primary">Browse Listings</Link>
               </div>
             ) : bookings.map(b => (
-              <div key={b._id} className="card p-5">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Link to={`/listings/${b.listing?._id}`} className="font-bold truncate hover:text-brand transition-colors">
-                        {b.listing?.title || 'Listing'}
-                      </Link>
-                      <span className={statusColors[b.status]}>{b.status}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-3 text-xs text-text-muted">
-                      <span className="capitalize">{b.listing?.category} → {b.listing?.subCategory}</span>
-                      <span className="flex items-center gap-1"><MapPin size={11} />{b.listing?.address?.area}</span>
-                      <span className="flex items-center gap-1"><IndianRupee size={11} />{b.totalAmount?.toLocaleString('en-IN')}</span>
-                      <span className="flex items-center gap-1"><Clock size={11} />{new Date(b.dates?.start).toLocaleDateString('en-IN')} → {new Date(b.dates?.end).toLocaleDateString('en-IN')}</span>
-                    </div>
-                    {b.provider && <p className="text-xs text-text-muted mt-1"><User size={11} className="inline mr-1" />Provider: {b.provider.name}</p>}
-                  </div>
-                  <div className="flex gap-2 shrink-0 flex-wrap">
-                    {b.status === 'pending' && (
-                      <button onClick={() => { if(confirm('Cancel this booking?')) cancelMut.mutate(b._id); }}
-                        className="btn-ghost btn-sm text-red-500"><XCircle size={14} />Cancel</button>
-                    )}
-                    {b.status === 'completed' && !b._reviewed && (
-                      <button onClick={() => setReviewBookingId(b._id)} className="btn-secondary btn-sm"><Star size={14} />Review</button>
-                    )}
-                    <Link to={`/listings/${b.listing?._id}`} className="btn-secondary btn-sm"><ExternalLink size={14} />View</Link>
-                  </div>
-                </div>
-              </div>
+              <SeekerBookingCard key={b._id} booking={b} cancelMut={cancelMut} setReviewBookingId={setReviewBookingId} />
             ))}
           </div>
         )}
@@ -293,3 +266,63 @@ const SeekerDashboard = () => {
 };
 
 export default SeekerDashboard;
+
+// Booking card with expandable provider location map
+const SeekerBookingCard = ({ booking: b, cancelMut, setReviewBookingId }) => {
+  const [showMap, setShowMap] = useState(false);
+  // Provider's listing location
+  const listingCoords = b.listing?.location?.coordinates;
+  const hasListingLocation = listingCoords && listingCoords.length === 2;
+  const providerPos = hasListingLocation ? [listingCoords[1], listingCoords[0]] : null;
+  // Show map button only for active bookings
+  const showMapBtn = (b.status === 'accepted' || b.status === 'completed') && providerPos;
+
+  return (
+    <div className="card p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <Link to={`/listings/${b.listing?._id}`} className="font-bold truncate hover:text-brand transition-colors">
+              {b.listing?.title || 'Listing'}
+            </Link>
+            <span className={statusColors[b.status]}>{b.status}</span>
+          </div>
+          <div className="flex flex-wrap gap-3 text-xs text-text-muted">
+            <span className="capitalize">{b.listing?.category} → {b.listing?.subCategory}</span>
+            <span className="flex items-center gap-1"><MapPin size={11} />{b.listing?.address?.area}</span>
+            <span className="flex items-center gap-1"><IndianRupee size={11} />{b.totalAmount?.toLocaleString('en-IN')}</span>
+            <span className="flex items-center gap-1"><Clock size={11} />{new Date(b.dates?.start).toLocaleDateString('en-IN')} → {new Date(b.dates?.end).toLocaleDateString('en-IN')}</span>
+          </div>
+          {b.provider && <p className="text-xs text-text-muted mt-1"><User size={11} className="inline mr-1" />Provider: {b.provider.name} • {b.provider.phone}</p>}
+        </div>
+        <div className="flex flex-col gap-2 shrink-0">
+          {b.status === 'pending' && (
+            <button onClick={() => { if(confirm('Cancel this booking?')) cancelMut.mutate(b._id); }}
+              className="btn-ghost btn-sm text-red-500"><XCircle size={14} />Cancel</button>
+          )}
+          {b.status === 'completed' && !b._reviewed && (
+            <button onClick={() => setReviewBookingId(b._id)} className="btn-secondary btn-sm"><Star size={14} />Review</button>
+          )}
+          <Link to={`/listings/${b.listing?._id}`} className="btn-secondary btn-sm"><ExternalLink size={14} />View</Link>
+          {showMapBtn && (
+            <button onClick={() => setShowMap(!showMap)} className="btn-secondary btn-sm">
+              <Navigation size={14} />{showMap ? 'Hide Map' : 'Provider Location'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Expandable Provider Location Map */}
+      {showMap && providerPos && (
+        <div className="mt-4 rounded-xl overflow-hidden border border-border" style={{ height: '250px' }}>
+          <MapContainer center={providerPos} zoom={15} className="h-full w-full z-0" scrollWheelZoom={false}>
+            <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <CircleMarker center={providerPos} radius={12} pathOptions={{ color: '#ffffff', weight: 3, fillColor: '#ea580c', fillOpacity: 1 }}>
+              <Popup><div className="font-semibold text-sm">📍 Provider's Location</div><p className="text-xs text-text-muted mt-1">{b.listing?.address?.area}</p></Popup>
+            </CircleMarker>
+          </MapContainer>
+        </div>
+      )}
+    </div>
+  );
+};

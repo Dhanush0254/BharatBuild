@@ -8,11 +8,17 @@
     "dev": "node --watch server.js",
     "seed": "node src/seed/seed.js"
   },
-  "keywords": ["construction", "marketplace", "mern", "telangana"],
+  "keywords": [
+    "construction",
+    "marketplace",
+    "mern",
+    "telangana"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.6.1",
     "cors": "^2.8.6",

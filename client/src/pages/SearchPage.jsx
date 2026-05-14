@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSearchListings } from '../hooks/useListings';
-import { Filter, Map as MapIcon, List as ListIcon, X, Search as SearchIcon, SlidersHorizontal, MapPin, IndianRupee, ShieldCheck } from 'lucide-react';
+import { parseAISearch } from '../api/aiApi';
+import { Filter, Map as MapIcon, List as ListIcon, X, Search as SearchIcon, SlidersHorizontal, MapPin, IndianRupee, ShieldCheck, Sparkles, Loader2 } from 'lucide-react';
 import ListingCard from '../components/listings/ListingCard';
 import MapView from '../components/map/MapView';
 import StarRating from '../components/ui/StarRating';
@@ -19,6 +20,11 @@ const SearchPage = () => {
   const [viewMode, setViewMode] = useState('split'); // list, map, split
   const [showFilters, setShowFilters] = useState(false);
   const [hoveredListingId, setHoveredListingId] = useState(null);
+
+  // AI Search State
+  const [aiMode, setAiMode] = useState(false);
+  const [aiQuery, setAiQuery] = useState('');
+  const [isAiParsing, setIsAiParsing] = useState(false);
 
   // Parse filters from URL
   const initialFilters = {
@@ -81,8 +87,35 @@ const SearchPage = () => {
 
   const applyFilters = (e) => {
     if (e) e.preventDefault();
+    if (aiMode) {
+      handleAiSearch(e);
+      return;
+    }
     updateUrl(filters);
     setShowFilters(false);
+  };
+
+  const handleAiSearch = async (e) => {
+    e.preventDefault();
+    if (!aiQuery.trim()) return;
+    try {
+      setIsAiParsing(true);
+      const parsedData = await parseAISearch(aiQuery);
+      
+      const newFilters = { ...filters };
+      if (parsedData.category) newFilters.category = parsedData.category.toLowerCase();
+      if (parsedData.subCategory) newFilters.subCategory = parsedData.subCategory;
+      if (parsedData.search) newFilters.search = parsedData.search;
+      
+      setFilters(newFilters);
+      updateUrl(newFilters);
+      setAiMode(false); // Switch back to normal mode to see applied filters
+    } catch (err) {
+      console.error(err);
+      alert('Failed to process AI query. Please check your API key and try again.');
+    } finally {
+      setIsAiParsing(false);
+    }
   };
 
   const clearFilters = () => {
@@ -124,15 +157,36 @@ const SearchPage = () => {
       <div className="bg-white border-b border-border p-4 shrink-0 z-10 shadow-sm relative">
         <form onSubmit={applyFilters} className="max-w-7xl mx-auto flex flex-col sm:flex-row gap-3">
           <div className="flex-1 flex gap-2 relative">
-            <div className="relative flex-1">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-              <input type="text" placeholder="Search workers, machinery..." className="form-input pl-10 h-12 w-full"
-                value={filters.search} onChange={(e) => handleFilterChange('search', e.target.value)} />
-            </div>
-            <button type="button" onClick={() => setShowFilters(!showFilters)} className="btn-secondary h-12 px-4 shrink-0 sm:hidden">
-              <SlidersHorizontal size={18} />
+            <button type="button" onClick={() => setAiMode(!aiMode)} className={`h-12 px-3 sm:px-4 rounded-xl flex items-center gap-2 transition-colors border-2 shrink-0 ${aiMode ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
+              <Sparkles size={18} className={aiMode ? 'animate-pulse' : ''} />
+              <span className="hidden sm:inline font-bold text-sm">AI Search</span>
             </button>
-            <button type="submit" className="btn-primary h-12 px-6 shrink-0 hidden sm:flex">Search</button>
+            
+            <div className="relative flex-1">
+              {aiMode ? (
+                <>
+                  <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" size={18} />
+                  <input type="text" placeholder='e.g., "I need 2 electricians tomorrow near Miyapur"' className="form-input pl-10 h-12 w-full border-indigo-200 focus:border-indigo-500 focus:ring-indigo-500/20 bg-indigo-50/30"
+                    value={aiQuery} onChange={(e) => setAiQuery(e.target.value)} disabled={isAiParsing} />
+                </>
+              ) : (
+                <>
+                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                  <input type="text" placeholder="Search workers, machinery..." className="form-input pl-10 h-12 w-full"
+                    value={filters.search} onChange={(e) => handleFilterChange('search', e.target.value)} />
+                </>
+              )}
+            </div>
+            
+            {!aiMode && (
+              <button type="button" onClick={() => setShowFilters(!showFilters)} className="btn-secondary h-12 px-4 shrink-0 sm:hidden">
+                <SlidersHorizontal size={18} />
+              </button>
+            )}
+            
+            <button type="submit" disabled={isAiParsing} className={`h-12 px-6 shrink-0 hidden sm:flex rounded-xl font-bold items-center justify-center transition-colors shadow-md ${aiMode ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-brand hover:bg-brand-dark text-white'}`}>
+              {isAiParsing ? <Loader2 size={18} className="animate-spin" /> : 'Search'}
+            </button>
           </div>
           
           <div className="hidden sm:flex items-center gap-2 bg-slate-100 p-1 rounded-lg shrink-0">

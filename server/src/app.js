@@ -15,6 +15,7 @@ const adminRoutes = require('./modules/admin/admin.routes');
 const bookingRoutes = require('./modules/bookings/booking.routes');
 const reviewRoutes = require('./modules/reviews/review.routes');
 const chatRoutes = require('./modules/chats/chat.routes');
+const aiRoutes = require('./modules/ai/ai.routes');
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/bookings', bookingRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/chats', chatRoutes);
+app.use('/api/v1/ai', aiRoutes);
 
 // ── 404 Handler ──────────────────────────────────────────────────────────────
 app.use((req, res) => {
