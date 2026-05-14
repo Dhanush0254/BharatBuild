@@ -36,7 +36,7 @@ material_model = None
 metadata = None
 
 try:
-    material_model = joblib.load(os.path.join(MODEL_DIR, "material_estimator.pkl"))
+    material_model = joblib.load(os.path.join(MODEL_DIR, "material_estimator.pkl"), mmap_mode='r')
     metadata = joblib.load(os.path.join(MODEL_DIR, "metadata.pkl"))
     print("[OK] Material estimator model loaded")
 except Exception as e:
