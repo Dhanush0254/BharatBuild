@@ -63,6 +63,9 @@ const MainLayout = () => {
                   {cat}
                 </Link>
               ))}
+              <Link to="/estimator" className="px-3 py-2 text-sm font-medium text-indigo-300 hover:text-white hover:bg-indigo-600/30 rounded-lg transition-all flex items-center gap-1.5 border border-indigo-500/20">
+                <span className="text-xs">🤖</span> ML Calculator
+              </Link>
               
               {isProvider && (
                 <Link to="/dashboard/provider" className="ml-2 px-3 py-2 text-sm font-medium text-brand bg-brand/10 hover:bg-brand/20 rounded-lg transition-all border border-brand/20">
@@ -159,6 +162,10 @@ const MainLayout = () => {
                   {cat}
                 </Link>
               ))}
+              <Link to="/estimator" onClick={() => setMobileOpen(false)}
+                className="block px-3 py-2 rounded-lg text-indigo-300 hover:text-white hover:bg-indigo-600/20 font-medium">
+                🤖 ML Calculator
+              </Link>
               
               {isProvider && (
                 <Link to="/dashboard/provider" onClick={() => setMobileOpen(false)} className="block px-3 py-2 mt-2 rounded-lg text-brand bg-brand/10 font-bold">Provider Dashboard</Link>

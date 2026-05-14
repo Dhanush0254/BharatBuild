@@ -14,6 +14,7 @@ import ProviderDashboard from './pages/ProviderDashboard';
 import SeekerDashboard from './pages/SeekerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ListingDetailPage from './pages/ListingDetailPage';
+import EstimatorPage from './pages/EstimatorPage';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -42,6 +43,7 @@ function AppRoutes() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/listings/:id" element={<ListingDetailPage />} />
+        <Route path="/estimator" element={<EstimatorPage />} />
         
         {/* Auth Routes */}
         <Route path="/login" element={<LoginPage />} />
