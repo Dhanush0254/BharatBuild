@@ -1,6 +1,8 @@
 # BharatBuild — AI-Powered Telangana Construction Marketplace 🏗️
 
-![BharatBuild Banner](https://via.placeholder.com/1200x300.png?text=BharatBuild+-+AI+Construction+Marketplace)
+<div align="center">
+  <img src="./client/src/assets/logo.png" alt="BharatBuild Logo" width="300" />
+</div>
 
 BharatBuild is a highly specialized, AI-enhanced MERN+Python marketplace platform tailored for the construction industry in Telangana. It connects users directly with verified *Mestris*, heavy machinery operators, and material suppliers via a robust geospatial search engine, while utilizing artificial intelligence and machine learning to estimate materials, predict prices, and parse complex, multilingual voice queries.
 

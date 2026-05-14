@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const ML_BASE_URL = import.meta.env.VITE_ML_URL || 'http://localhost:8000';
+let mlHost = import.meta.env.VITE_ML_URL || 'http://localhost:8000';
+if (mlHost && !mlHost.startsWith('http')) {
+  mlHost = `https://${mlHost}`;
+}
+const ML_BASE_URL = mlHost;
 
 const mlApi = axios.create({ baseURL: ML_BASE_URL });
 

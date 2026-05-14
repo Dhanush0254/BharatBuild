@@ -1,8 +1,11 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL 
-  ? `https://${import.meta.env.VITE_API_URL}/api/v1` 
-  : '/api/v1';
+let apiHost = import.meta.env.VITE_API_URL || '';
+if (apiHost && !apiHost.startsWith('http')) {
+  // Render's host property often omits the protocol
+  apiHost = `https://${apiHost}`;
+}
+const baseURL = apiHost ? `${apiHost}/api/v1` : '/api/v1';
 
 const api = axios.create({
   baseURL,
