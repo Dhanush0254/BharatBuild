@@ -4,20 +4,28 @@ import { IndianRupee } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 // Component to dynamically adjust map bounds based on markers
-const MapBounds = ({ listings }) => {
+const MapBounds = ({ listings, userLocation }) => {
   const map = useMap();
 
   useEffect(() => {
-    if (listings && listings.length > 0) {
+    if (userLocation && userLocation.lat && userLocation.lng) {
+      // User requested: ALWAYS center exactly on the user's location
+      map.flyTo([userLocation.lat, userLocation.lng], 13, { duration: 1.5 });
+    } else if (listings && listings.length > 0) {
+      // Fallback: If no user location, frame all listings
       const bounds = listings.map(l => [l.location.coordinates[1], l.location.coordinates[0]]);
-      map.fitBounds(bounds, { padding: [50, 50] });
+      if (bounds.length === 1) {
+        map.flyTo(bounds[0], 13, { duration: 1.5 });
+      } else {
+        map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
+      }
     }
-  }, [listings, map]);
+  }, [listings, userLocation, map]);
 
   return null;
 };
 
-const MapView = ({ listings, hoveredListingId }) => {
+const MapView = ({ listings, hoveredListingId, userLocation }) => {
   // Center of Hyderabad as fallback
   const defaultCenter = [17.3850, 78.4867];
 
@@ -34,7 +42,27 @@ const MapView = ({ listings, hoveredListingId }) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {listings && listings.length > 0 && <MapBounds listings={listings} />}
+        {((listings && listings.length > 0) || (userLocation && userLocation.lat)) && (
+          <MapBounds listings={listings} userLocation={userLocation} />
+        )}
+
+        {/* User Location Marker */}
+        {userLocation && userLocation.lat && userLocation.lng && (
+          <CircleMarker
+            center={[userLocation.lat, userLocation.lng]}
+            radius={10}
+            pathOptions={{
+              color: '#ffffff',
+              weight: 3,
+              fillColor: '#3b82f6', // Bright Blue
+              fillOpacity: 1,
+            }}
+          >
+            <Popup className="custom-popup z-50">
+              <div className="font-semibold text-center text-sm py-1">📍 You are here</div>
+            </Popup>
+          </CircleMarker>
+        )}
 
         {listings?.map((listing) => {
           const isHovered = listing._id === hoveredListingId;

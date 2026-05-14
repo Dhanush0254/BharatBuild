@@ -55,6 +55,32 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // ── V2: Verification (for material shop providers) ──────────────
+    verificationStatus: {
+      type: String,
+      enum: ['unverified', 'pending', 'verified'],
+      default: 'unverified',
+    },
+    verificationDocs: {
+      gst: { type: String, default: '' },
+      shopLicense: { type: String, default: '' },
+      shopPhotos: [String],
+      addressProof: { type: String, default: '' },
+      govPermissions: { type: String, default: '' },
+    },
+
+    // ── V2: Seeker — Saved workers / listings ───────────────────────
+    savedWorkers: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Listing',
+    }],
+
+    // ── V2: Seeker — Recently viewed listings ───────────────────────
+    recentlyViewed: [{
+      listing: { type: mongoose.Schema.Types.ObjectId, ref: 'Listing' },
+      viewedAt: { type: Date, default: Date.now },
+    }],
   },
   {
     timestamps: true,

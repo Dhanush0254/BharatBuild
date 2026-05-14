@@ -5,15 +5,9 @@ export const getAdminStats = async () => {
   return response.data.data;
 };
 
-export const getAdminListings = async (params = {}) => {
-  const query = new URLSearchParams(params);
-  const response = await api.get(`/admin/listings?${query.toString()}`);
-  return response.data.data;
-};
-
 export const getPendingListings = async (params = {}) => {
   const query = new URLSearchParams(params);
-  const response = await api.get(`/admin/listings/pending?${query.toString()}`);
+  const response = await api.get(`/admin/pending?${query.toString()}`);
   return response.data.data;
 };
 
@@ -29,6 +23,17 @@ export const getAdminUsers = async (params = {}) => {
 };
 
 export const toggleUserStatus = async (id) => {
-  const response = await api.patch(`/admin/users/${id}/toggle-status`);
+  const response = await api.patch(`/admin/users/${id}/toggle`);
+  return response.data.data;
+};
+
+export const getVerificationRequests = async (params = {}) => {
+  const query = new URLSearchParams(params);
+  const response = await api.get(`/admin/verifications?${query.toString()}`);
+  return response.data.data;
+};
+
+export const handleVerification = async (userId, action) => {
+  const response = await api.patch(`/admin/verify/${userId}`, { action });
   return response.data.data;
 };

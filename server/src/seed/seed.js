@@ -2,19 +2,20 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 const User = require('../modules/users/user.model');
 const Listing = require('../modules/listings/listing.model');
+const Booking = require('../modules/bookings/booking.model');
+const Review = require('../modules/reviews/review.model');
+const Chat = require('../modules/chats/chat.model');
+const Message = require('../modules/chats/message.model');
 
-// ── Telangana Locations ──────────────────────────────────────────────────────
 const locations = [
   { area: 'Kukatpally', district: 'Medchal-Malkajgiri', coords: [78.3968, 17.4933] },
   { area: 'LB Nagar', district: 'Rangareddy', coords: [78.5528, 17.3457] },
   { area: 'Dilsukhnagar', district: 'Rangareddy', coords: [78.5247, 17.3685] },
   { area: 'Miyapur', district: 'Medchal-Malkajgiri', coords: [78.3489, 17.4968] },
   { area: 'Secunderabad', district: 'Hyderabad', coords: [78.5016, 17.4399] },
-  { area: 'Medchal', district: 'Medchal-Malkajgiri', coords: [78.4820, 17.6294] },
-  { area: 'Sangareddy', district: 'Sangareddy', coords: [78.0815, 17.6294] },
+  { area: 'Patancheru', district: 'Sangareddy', coords: [78.2640, 17.5330] },
+  { area: 'Gachibowli', district: 'Rangareddy', coords: [78.3498, 17.4401] },
   { area: 'Uppal', district: 'Medchal-Malkajgiri', coords: [78.5594, 17.4065] },
-  { area: 'Begumpet', district: 'Hyderabad', coords: [78.4706, 17.4440] },
-  { area: 'Ameerpet', district: 'Hyderabad', coords: [78.4480, 17.4375] },
   { area: 'Kompally', district: 'Medchal-Malkajgiri', coords: [78.4860, 17.5405] },
   { area: 'Nagole', district: 'Rangareddy', coords: [78.5590, 17.3720] },
 ];
@@ -37,205 +38,224 @@ const providerNames = [
   { name: 'Ramesh Naidu', phone: '9876543224' },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const jitter = (val) => val + (Math.random() - 0.5) * 0.04;
+const randInt = (min, max) => min + Math.floor(Math.random() * (max - min));
 
-// ── Listing Templates ────────────────────────────────────────────────────────
+// V2 subcategories matching master spec
 const workerTemplates = [
-  { sub: 'construction', title: 'Experienced Worker for Construction Work', price: [700, 1000], unit: 'per day', meta: { experience: '8 years', specialization: 'Residential construction' } },
-  { sub: 'construction', title: 'Professional Mason / Worker Available', price: [800, 1200], unit: 'per day', meta: { experience: '12 years', specialization: 'Commercial buildings' } },
-  { sub: 'destruction', title: 'Building Demolition & Destruction Team', price: [1500, 2500], unit: 'per day', meta: { experience: '5 years' } },
-  { sub: 'destruction', title: 'Reliable Labour for Demolition & Debris Removal', price: [600, 900], unit: 'per day', meta: { experience: '7 years' } },
-  { sub: 'electrician', title: 'Licensed Electrician — Wiring & Repairs', price: [600, 900], unit: 'per day', meta: { experience: '7 years', certification: 'Government Licensed' } },
-  { sub: 'electrician', title: 'Electrical Contractor for New Construction', price: [700, 1100], unit: 'per day', meta: { experience: '10 years', certification: 'Certified' } },
-  { sub: 'plumber', title: 'Expert Plumber — Pipeline & Fitting Work', price: [600, 850], unit: 'per day', meta: { experience: '6 years' } },
-  { sub: 'plumber', title: 'Professional Plumber for Bathroom & Kitchen', price: [650, 900], unit: 'per day', meta: { experience: '8 years' } },
+  { sub: 'Mestri', title: 'Experienced Mestri for Construction', price: [800, 1200], unit: 'per day', meta: { experience: '10 years', specialization: 'Residential' } },
+  { sub: 'Mestri', title: 'Professional Mestri — Full Site Supervision', price: [1000, 1500], unit: 'per day', meta: { experience: '15 years', specialization: 'Commercial' } },
+  { sub: 'Mason', title: 'Skilled Mason — Brickwork & Plastering', price: [700, 1000], unit: 'per day', meta: { experience: '8 years' } },
+  { sub: 'Mason', title: 'Mason Available for Wall & Foundation Work', price: [650, 950], unit: 'per day', meta: { experience: '12 years' } },
+  { sub: 'Carpenter', title: 'Carpenter — Doors, Windows & Furniture', price: [800, 1100], unit: 'per day', meta: { experience: '10 years' } },
+  { sub: 'Electrician', title: 'Licensed Electrician — Wiring & Repairs', price: [600, 900], unit: 'per day', meta: { experience: '7 years', certification: 'Government Licensed' } },
+  { sub: 'Painter', title: 'Professional Painter — Interior & Exterior', price: [500, 800], unit: 'per day', meta: { experience: '6 years' } },
+  { sub: 'Welder', title: 'Welder — Gates, Grills & Steel Work', price: [700, 1000], unit: 'per day', meta: { experience: '8 years' } },
+  { sub: 'Plumber', title: 'Expert Plumber — Pipeline & Fitting', price: [600, 850], unit: 'per day', meta: { experience: '6 years' } },
+  { sub: 'Tile Worker', title: 'Tile Worker — Floor & Wall Tiling', price: [700, 1000], unit: 'per day', meta: { experience: '5 years' } },
+  { sub: 'POP Worker', title: 'POP & False Ceiling Specialist', price: [800, 1100], unit: 'per day', meta: { experience: '7 years' } },
+  { sub: 'Helper', title: 'Construction Helper — Daily Wage', price: [400, 600], unit: 'per day', meta: { experience: '3 years' } },
+  { sub: 'AC Technician', title: 'AC Technician — Install & Service', price: [600, 900], unit: 'per visit', meta: { experience: '5 years', brands: 'All brands' } },
 ];
 
 const machineryTemplates = [
-  { sub: 'JCB', title: 'JCB Excavator for Rent', price: [2500, 4000], unit: 'per hour', meta: { model: 'JCB 3DX', capacity: '3.5 ton', operator: 'Included' } },
-  { sub: 'JCB', title: 'JCB Machine with Operator — Earthwork', price: [3000, 4500], unit: 'per hour', meta: { model: 'JCB 4DX', capacity: '4 ton', operator: 'Included' } },
-  { sub: 'crane', title: 'Hydraulic Crane for Construction Site', price: [5000, 8000], unit: 'per hour', meta: { capacity: '15 ton', height: '30 meters', operator: 'Included' } },
-  { sub: 'crane', title: 'Mobile Crane Available for Hire', price: [4000, 7000], unit: 'per hour', meta: { capacity: '10 ton', operator: 'Included' } },
-  { sub: 'tractor', title: 'Tractor with Trolley — Material Transport', price: [1500, 2500], unit: 'per trip', meta: { capacity: '3 ton', driver: 'Included' } },
-  { sub: 'tractor', title: 'Tractor for Earthwork & Land Leveling', price: [1800, 3000], unit: 'per hour', meta: { model: 'Mahindra 575', driver: 'Included' } },
-  { sub: 'drilling rig', title: 'Borewell Drilling Rig — Deep Boring', price: [8000, 15000], unit: 'per 100ft', meta: { depth: 'Up to 500ft', type: 'Rotary' } },
-  { sub: 'mixer machine', title: 'Concrete Mixer Machine on Rent', price: [800, 1500], unit: 'per day', meta: { capacity: '400 liters', type: 'Tilting drum' } },
-  { sub: 'mixer machine', title: 'Mini Concrete Mixer for Small Projects', price: [500, 900], unit: 'per day', meta: { capacity: '200 liters' } },
-  { sub: 'lorry', title: 'Tata Lorry for Heavy Material Transport', price: [3000, 5000], unit: 'per trip', meta: { capacity: '10 ton', driver: 'Included' } },
-  { sub: 'lorry', title: 'Transport Lorry — Sand, Gravel, Steel', price: [2500, 4500], unit: 'per trip', meta: { capacity: '8 ton', driver: 'Included' } },
+  { sub: 'JCB', title: 'JCB Excavator for Rent — Earthwork', price: [2500, 4000], unit: 'per hour', meta: { model: 'JCB 3DX', operator: 'Included' } },
+  { sub: 'JCB', title: 'JCB 4DX with Operator Available', price: [3000, 4500], unit: 'per hour', meta: { model: 'JCB 4DX', operator: 'Included' } },
+  { sub: 'Crane', title: 'Hydraulic Crane for Construction Site', price: [5000, 8000], unit: 'per hour', meta: { capacity: '15 ton', operator: 'Included' } },
+  { sub: 'Dumper', title: 'Dumper Truck for Material Transport', price: [2000, 3500], unit: 'per trip', meta: { capacity: '6 ton', driver: 'Included' } },
+  { sub: 'Tractor', title: 'Tractor with Trolley — Material Transport', price: [1500, 2500], unit: 'per trip', meta: { capacity: '3 ton', driver: 'Included' } },
+  { sub: 'Concrete Mixer', title: 'Concrete Mixer Machine on Rent', price: [800, 1500], unit: 'per day', meta: { capacity: '400 liters' } },
+  { sub: 'Borewell Rig', title: 'Borewell Drilling Rig — Deep Boring', price: [8000, 15000], unit: 'per 100ft', meta: { depth: 'Up to 500ft' } },
 ];
 
 const materialTemplates = [
-  { sub: 'sand', title: 'River Sand — Premium Quality', price: [4000, 6000], unit: 'per tractor', meta: { type: 'River sand', quality: 'Zone II' } },
-  { sub: 'sand', title: 'M-Sand for Construction — Best Price', price: [3500, 5000], unit: 'per tractor', meta: { type: 'M-Sand (Manufactured)', quality: 'IS standard' } },
-  { sub: 'bricks', title: 'Red Clay Bricks — Bulk Supply', price: [5000, 7000], unit: 'per 1000 pieces', meta: { type: 'Wire-cut', size: '9x4x3 inch' } },
-  { sub: 'bricks', title: 'Fly Ash Bricks — Lightweight & Durable', price: [4500, 6000], unit: 'per 1000 pieces', meta: { type: 'Fly ash', size: '9x4x3 inch' } },
-  { sub: 'cement', title: 'UltraTech Cement — 53 Grade OPC', price: [370, 420], unit: 'per bag', meta: { brand: 'UltraTech', grade: 'OPC 53', weight: '50 kg' } },
-  { sub: 'cement', title: 'ACC Cement — PPC Grade', price: [350, 400], unit: 'per bag', meta: { brand: 'ACC', grade: 'PPC', weight: '50 kg' } },
-  { sub: 'cement', title: 'Ambuja Cement — OPC 43 Grade', price: [360, 410], unit: 'per bag', meta: { brand: 'Ambuja', grade: 'OPC 43', weight: '50 kg' } },
-  { sub: 'steel', title: 'TMT Steel Bars — Fe 500 Grade', price: [55000, 65000], unit: 'per ton', meta: { brand: 'Tata Tiscon', grade: 'Fe 500', type: 'TMT' } },
-  { sub: 'steel', title: 'Vizag Steel TMT Bars — Fe 500D', price: [52000, 62000], unit: 'per ton', meta: { brand: 'Vizag Steel', grade: 'Fe 500D' } },
-  { sub: 'gravel', title: 'Crushed Stone Gravel — 20mm & 40mm', price: [1200, 2000], unit: 'per cubic meter', meta: { sizes: '20mm, 40mm', type: 'Crushed granite' } },
-  { sub: 'gravel', title: 'Metal Jelly for RCC & Road Work', price: [1500, 2200], unit: 'per cubic meter', meta: { sizes: '12mm, 20mm' } },
+  { sub: 'Sand', title: 'River Sand — Premium Quality', price: [4000, 6000], unit: 'per tractor', meta: { type: 'River sand', quality: 'Zone II' } },
+  { sub: 'Sand', title: 'M-Sand for Construction', price: [3500, 5000], unit: 'per tractor', meta: { type: 'M-Sand' } },
+  { sub: 'Cement', title: 'UltraTech Cement — 53 Grade OPC', price: [370, 420], unit: 'per bag', meta: { brand: 'UltraTech', weight: '50 kg' } },
+  { sub: 'Cement', title: 'ACC Cement — PPC Grade', price: [350, 400], unit: 'per bag', meta: { brand: 'ACC', weight: '50 kg' } },
+  { sub: 'Bricks', title: 'Red Clay Bricks — Bulk Supply', price: [5000, 7000], unit: 'per 1000 pieces', meta: { type: 'Wire-cut' } },
+  { sub: 'Bricks', title: 'Fly Ash Bricks — Lightweight', price: [4500, 6000], unit: 'per 1000 pieces', meta: { type: 'Fly ash' } },
+  { sub: 'Steel', title: 'TMT Steel Bars — Fe 500 Grade', price: [55000, 65000], unit: 'per ton', meta: { brand: 'Tata Tiscon' } },
+  { sub: 'Gravel', title: 'Crushed Stone Gravel — 20mm & 40mm', price: [1200, 2000], unit: 'per cubic meter', meta: { type: 'Crushed granite' } },
+  { sub: 'Tiles', title: 'Vitrified Floor Tiles — Premium Quality', price: [35, 80], unit: 'per sq ft', meta: { brand: 'Kajaria', type: 'Vitrified' } },
+  { sub: 'Tiles', title: 'Wall & Bathroom Tiles — All Sizes', price: [25, 60], unit: 'per sq ft', meta: { brand: 'Somany' } },
 ];
 
 const repairTemplates = [
-  { sub: 'TV', title: 'LED/LCD TV Repair — Home Service', price: [500, 1200], unit: 'per visit', meta: { brands: 'Samsung, LG, Sony' } },
-  { sub: 'TV', title: 'Smart TV Screen Repair & Panel Fix', price: [1500, 3000], unit: 'per job', meta: { experience: '6 years' } },
-  { sub: 'refrigerator', title: 'Refrigerator & Fridge Repair Specialist', price: [600, 1500], unit: 'per visit', meta: { brands: 'Whirlpool, LG, Godrej' } },
-  { sub: 'mixer', title: 'Mixer Grinder Repair & Spares', price: [200, 600], unit: 'per visit', meta: { brands: 'Preethi, Bajaj, Sujata' } },
-  { sub: 'AC', title: 'AC Repair & Service — All Brands', price: [500, 800], unit: 'per visit', meta: { brands: 'All brands', type: 'Split & Window AC' } },
-  { sub: 'AC', title: 'AC Installation & Gas Refill', price: [1000, 2000], unit: 'per unit', meta: { service: 'Installation + Gas refill' } },
-  { sub: 'electrical repair', title: 'Home Electrical Repair — Wiring & Switches', price: [300, 600], unit: 'per visit', meta: { type: 'Residential', experience: '5 years' } },
-  { sub: 'electrical repair', title: 'Electrical Fault Finding & Repair', price: [400, 700], unit: 'per visit', meta: { type: 'Residential & Commercial' } },
-  { sub: 'plumbing repair', title: 'Plumbing Repair — Leakage & Blockage Fix', price: [300, 500], unit: 'per visit', meta: { type: 'Emergency service available' } },
-  { sub: 'plumbing repair', title: 'Bathroom Plumbing Repair & Fitting', price: [400, 700], unit: 'per visit', meta: { type: 'Installation & repair' } },
-  { sub: 'borewell repair', title: 'Borewell Motor Repair & Service', price: [1500, 3000], unit: 'per visit', meta: { type: 'Submersible & Monoblock', experience: '10 years' } },
-  { sub: 'borewell repair', title: 'Borewell Flush & Motor Installation', price: [2000, 5000], unit: 'per job', meta: { service: 'Flushing + Motor fitting' } },
+  { sub: 'AC Repair', title: 'AC Repair & Service — All Brands', price: [500, 800], unit: 'per visit', meta: { brands: 'All brands' } },
+  { sub: 'AC Repair', title: 'AC Installation & Gas Refill', price: [1000, 2000], unit: 'per unit', meta: { service: 'Installation + Gas refill' } },
+  { sub: 'Electrical Repair', title: 'Home Electrical Repair — Wiring', price: [300, 600], unit: 'per visit', meta: { type: 'Residential' } },
+  { sub: 'Electrical Repair', title: 'Electrical Fault Finding & Repair', price: [400, 700], unit: 'per visit', meta: { type: 'Commercial' } },
+  { sub: 'Plumbing Repair', title: 'Plumbing Repair — Leakage & Blockage', price: [300, 500], unit: 'per visit', meta: { type: 'Emergency' } },
+  { sub: 'Plumbing Repair', title: 'Bathroom Plumbing Repair & Fitting', price: [400, 700], unit: 'per visit', meta: { type: 'Installation' } },
+  { sub: 'Borewell Repair', title: 'Borewell Motor Repair & Service', price: [1500, 3000], unit: 'per visit', meta: { type: 'Submersible' } },
 ];
 
-const descriptionTemplates = {
+const descs = {
   workers: (sub, loc) => [
-    `Experienced ${sub} available for work in ${loc.area} and surrounding areas. I have been working in the construction industry and ensure quality workmanship on every project. Available for both residential and commercial jobs. Contact me directly for immediate availability.`,
-    `Professional ${sub} with years of experience in ${loc.area}, Hyderabad. Specializing in quality construction work with timely completion. I bring my own basic tools and work with dedication. Daily wage and contract work both accepted.`,
-    `Skilled ${sub} looking for construction work around ${loc.area}. I have completed many projects in the ${loc.district} district and have good references. Available for immediate joining. Weekend work also accepted.`,
+    `Experienced ${sub} available in ${loc.area}. Quality workmanship, timely completion. Available for residential and commercial jobs.`,
+    `Professional ${sub} with years of experience in ${loc.area}, Hyderabad. Daily wage and contract work accepted.`,
   ],
   machinery: (sub, loc) => [
-    `Well-maintained ${sub} available for rent in ${loc.area} area. Experienced operator included. We ensure on-time delivery to your construction site. Serving ${loc.district} district and nearby areas. Hourly and daily rates available.`,
-    `${sub} on rent for construction and earthwork in ${loc.area}. Our machine is in excellent working condition and comes with a skilled operator. Contact us for best rates. Bulk booking discounts available.`,
+    `Well-maintained ${sub} for rent in ${loc.area}. Operator included. Hourly and daily rates available.`,
+    `${sub} on rent for construction in ${loc.area}. Excellent condition, skilled operator. Bulk booking discounts.`,
   ],
   materials: (sub, loc) => [
-    `We supply top-quality ${sub} directly to your construction site in ${loc.area} and across ${loc.district} district. Fast delivery guaranteed. We deal only in certified quality materials. Bulk orders welcome.`,
-    `Premium ${sub} available at competitive prices with delivery to ${loc.area} and surrounding areas. We have been supplying construction materials for over 10 years. Quality tested and certified.`,
+    `Top-quality ${sub} delivered to your site in ${loc.area}. Certified quality, bulk orders welcome.`,
+    `Premium ${sub} at competitive prices with delivery to ${loc.area}. 10+ years in business.`,
   ],
   repairs: (sub, loc) => [
-    `${sub} expert serving ${loc.area} and nearby areas. Quick response time and professional service. All types of ${sub.toLowerCase()} handled. Warranty on service provided. Call for emergency service.`,
-    `Professional ${sub} service in ${loc.area}, ${loc.district}. We provide quick, reliable and affordable repair services. Customer satisfaction guaranteed. Available on weekends and holidays.`,
+    `${sub} expert in ${loc.area}. Quick response, professional service. Warranty on service provided.`,
+    `Professional ${sub} service in ${loc.area}. Reliable, affordable. Available on weekends.`,
   ],
 };
 
-// ── Build listings ───────────────────────────────────────────────────────────
+const reviewComments = [
+  'Excellent work! Very professional and completed on time.',
+  'Good service. Arrived on time and did quality work.',
+  'Decent work, could improve on punctuality.',
+  'Very skilled worker. Will definitely hire again!',
+  'Fair price and honest work. Recommended.',
+  'Great experience. Very knowledgeable and efficient.',
+  'Satisfactory work. Communication could be better.',
+  'Outstanding quality! Exceeded expectations.',
+];
+
 const buildListings = (templates, category, providerIds) => {
   const listings = [];
-
   templates.forEach((tpl) => {
-    // Create 1-2 listings per template
     const count = Math.random() > 0.5 ? 2 : 1;
     for (let i = 0; i < count; i++) {
       const loc = rand(locations);
       const provider = rand(providerIds);
-      const descs = descriptionTemplates[category](tpl.sub, loc);
       const price = tpl.price[0] + Math.floor(Math.random() * (tpl.price[1] - tpl.price[0]));
-
       listings.push({
         provider,
         category,
         subCategory: tpl.sub,
         title: tpl.title,
-        description: rand(descs),
+        description: rand(descs[category](tpl.sub, loc)),
         pricing: { amount: price, unit: tpl.unit },
-        location: {
-          type: 'Point',
-          coordinates: [jitter(loc.coords[0]), jitter(loc.coords[1])],
-        },
-        address: {
-          area: loc.area,
-          city: 'Hyderabad',
-          district: loc.district,
-          state: 'Telangana',
-        },
+        location: { type: 'Point', coordinates: [jitter(loc.coords[0]), jitter(loc.coords[1])] },
+        address: { area: loc.area, city: 'Hyderabad', district: loc.district, state: 'Telangana' },
         metadata: tpl.meta,
-        availability: Math.random() > 0.1, // 90% available
+        availability: Math.random() > 0.1,
         status: 'approved',
+        workerStatus: Math.random() > 0.2 ? 'active' : (Math.random() > 0.5 ? 'busy' : 'active'),
         viewCount: Math.floor(Math.random() * 200),
         inquiryCount: Math.floor(Math.random() * 30),
+        ratings: { average: Math.round((3 + Math.random() * 2) * 10) / 10, count: randInt(2, 15) },
       });
     }
   });
-
   return listings;
 };
 
-// ── Main Seed Function ───────────────────────────────────────────────────────
 const seedDatabase = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✓ MongoDB connected for seeding...');
 
-    // Clear existing data
     await Promise.all([
-      User.deleteMany(),
-      Listing.deleteMany(),
+      User.deleteMany(), Listing.deleteMany(), Booking.deleteMany(),
+      Review.deleteMany(), Chat.deleteMany(), Message.deleteMany(),
     ]);
     console.log('✓ Cleared existing data');
 
-    // Create admin user
-    const admin = await User.create({
-      name: 'Admin User',
-      email: 'admin@bharatbuild.in',
-      password: 'admin123',
-      role: 'admin',
-      phone: '9000000000',
-    });
-    console.log('✓ Admin created: admin@bharatbuild.in / admin123');
+    // Admin
+    const admin = await User.create({ name: 'Admin User', email: 'admin@bharatbuild.in', password: 'admin123', role: 'admin', phone: '9000000000' });
+    console.log('✓ Admin: admin@bharatbuild.in / admin123');
 
-    // Create seeker user
-    const seeker = await User.create({
-      name: 'Priya Sharma',
-      email: 'seeker@bharatbuild.in',
-      password: 'seeker123',
-      role: 'seeker',
-      phone: '9000000001',
-    });
-    console.log('✓ Seeker created: seeker@bharatbuild.in / seeker123');
+    // Seeker
+    const seeker = await User.create({ name: 'Priya Sharma', email: 'seeker@bharatbuild.in', password: 'seeker123', role: 'seeker', phone: '9000000001',
+      location: { type: 'Point', coordinates: [78.3968, 17.4933] }, address: { area: 'Kukatpally', district: 'Medchal-Malkajgiri' } });
+    const seeker2 = await User.create({ name: 'Arjun Reddy', email: 'arjun@bharatbuild.in', password: 'seeker123', role: 'seeker', phone: '9000000002',
+      location: { type: 'Point', coordinates: [78.5016, 17.4399] }, address: { area: 'Secunderabad', district: 'Hyderabad' } });
+    console.log('✓ Seekers created');
 
-    // Create provider users
+    // Providers
     const providerDocs = [];
     for (const p of providerNames) {
       const loc = rand(locations);
       const doc = await User.create({
-        name: p.name,
-        email: `${p.name.split(' ')[0].toLowerCase()}@bharatbuild.in`,
-        password: 'provider123',
-        role: 'provider',
-        phone: p.phone,
-        location: {
-          type: 'Point',
-          coordinates: [jitter(loc.coords[0]), jitter(loc.coords[1])],
-        },
-        address: {
-          area: loc.area,
-          city: 'Hyderabad',
-          district: loc.district,
-          state: 'Telangana',
-        },
+        name: p.name, email: `${p.name.split(' ')[0].toLowerCase()}@bharatbuild.in`, password: 'provider123', role: 'provider', phone: p.phone,
+        location: { type: 'Point', coordinates: [jitter(loc.coords[0]), jitter(loc.coords[1])] },
+        address: { area: loc.area, city: 'Hyderabad', district: loc.district, state: 'Telangana' },
       });
       providerDocs.push(doc);
     }
-    console.log(`✓ ${providerDocs.length} providers created`);
+    // Mark some as verified
+    for (let i = 0; i < 3; i++) {
+      providerDocs[i].verificationStatus = 'verified';
+      providerDocs[i].verificationDocs = { gst: 'GST12345678', shopLicense: 'LIC-HYD-' + (i + 1), shopPhotos: [], addressProof: 'Aadhaar verified' };
+      await providerDocs[i].save();
+    }
+    console.log(`✓ ${providerDocs.length} providers created (3 verified)`);
 
     const providerIds = providerDocs.map((p) => p._id);
 
-    // Build all listings
+    // Build listings
     const allListings = [
       ...buildListings(workerTemplates, 'workers', providerIds),
       ...buildListings(machineryTemplates, 'machinery', providerIds),
       ...buildListings(materialTemplates, 'materials', providerIds),
       ...buildListings(repairTemplates, 'repairs', providerIds),
     ];
+    // Mark verified provider listings
+    allListings.forEach(l => {
+      const verifiedIds = providerDocs.slice(0, 3).map(p => p._id.toString());
+      if (verifiedIds.includes(l.provider.toString()) && l.category === 'materials') l.isVerified = true;
+    });
 
-    await Listing.insertMany(allListings);
-    console.log(`✓ ${allListings.length} listings seeded successfully!`);
+    const insertedListings = await Listing.insertMany(allListings);
+    console.log(`✓ ${insertedListings.length} listings seeded`);
+
+    // Create bookings
+    const bookings = [];
+    const statuses = ['completed', 'completed', 'completed', 'accepted', 'pending'];
+    for (let i = 0; i < 8; i++) {
+      const listing = insertedListings[i % insertedListings.length];
+      const status = statuses[i % statuses.length];
+      const start = new Date(); start.setDate(start.getDate() - randInt(5, 30));
+      const end = new Date(start); end.setDate(end.getDate() + randInt(1, 5));
+      const b = await Booking.create({
+        listing: listing._id, seeker: i % 2 === 0 ? seeker._id : seeker2._id, provider: listing.provider,
+        dates: { start, end }, status, totalAmount: listing.pricing.amount * randInt(1, 5),
+        notes: 'Need for my house construction project', isRebooking: false,
+      });
+      bookings.push(b);
+    }
+    console.log(`✓ ${bookings.length} bookings seeded`);
+
+    // Create reviews for completed bookings
+    const completedBookings = bookings.filter(b => b.status === 'completed');
+    for (const b of completedBookings) {
+      await Review.create({
+        listing: b.listing, booking: b._id, reviewer: b.seeker, provider: b.provider,
+        rating: randInt(3, 6), comment: rand(reviewComments),
+      });
+    }
+    console.log(`✓ ${completedBookings.length} reviews seeded`);
+
+    // Create chats
+    const chat1 = await Chat.create({
+      participants: [seeker._id, providerDocs[0]._id], listing: insertedListings[0]._id,
+      lastMessage: { text: 'When can you start?', sender: seeker._id, timestamp: new Date() },
+    });
+    await Message.insertMany([
+      { chat: chat1._id, sender: seeker._id, text: 'Hi, I need a mestri for my house construction in Kukatpally.', read: true },
+      { chat: chat1._id, sender: providerDocs[0]._id, text: 'Hello! Yes, I am available. When do you want to start?', read: true },
+      { chat: chat1._id, sender: seeker._id, text: 'When can you start?', read: false },
+    ]);
+    console.log('✓ Sample chat seeded');
+
     console.log('\n── Seed Summary ──');
-    console.log(`  Users:    ${providerDocs.length + 2}`);
-    console.log(`  Listings: ${allListings.length}`);
-    console.log(`  Workers:  ${allListings.filter(l => l.category === 'workers').length}`);
-    console.log(`  Machinery: ${allListings.filter(l => l.category === 'machinery').length}`);
-    console.log(`  Materials: ${allListings.filter(l => l.category === 'materials').length}`);
-    console.log(`  Repairs:  ${allListings.filter(l => l.category === 'repairs').length}`);
-
+    console.log(`  Users:    ${providerDocs.length + 3}`);
+    console.log(`  Listings: ${insertedListings.length}`);
+    console.log(`  Bookings: ${bookings.length}`);
+    console.log(`  Reviews:  ${completedBookings.length}`);
+    console.log(`  Chats:    1`);
     process.exit(0);
   } catch (err) {
     console.error('✗ Seed failed:', err);

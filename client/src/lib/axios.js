@@ -11,19 +11,52 @@ const api = axios.create({
   },
 });
 
+let pendingRequests = 0;
+let isWaking = false;
+let wakeupTimeout;
+
+const startWakingTimer = () => {
+  if (pendingRequests === 0) {
+    wakeupTimeout = setTimeout(() => {
+      isWaking = true;
+      window.dispatchEvent(new Event('backend-waking'));
+    }, 2500); // 2.5 seconds without response = backend is sleeping
+  }
+  pendingRequests++;
+};
+
+const stopWakingTimer = () => {
+  pendingRequests = Math.max(0, pendingRequests - 1);
+  if (pendingRequests === 0) {
+    clearTimeout(wakeupTimeout);
+    if (isWaking) {
+      isWaking = false;
+      window.dispatchEvent(new Event('backend-awake'));
+    }
+  }
+};
+
 // Attach JWT token to every request if available
 api.interceptors.request.use((config) => {
+  startWakingTimer();
   const token = localStorage.getItem('bb_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
+}, (error) => {
+  stopWakingTimer();
+  return Promise.reject(error);
 });
 
 // Handle 401 responses globally
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    stopWakingTimer();
+    return response;
+  },
   (error) => {
+    stopWakingTimer();
     if (error.response?.status === 401) {
       localStorage.removeItem('bb_token');
       localStorage.removeItem('bb_user');

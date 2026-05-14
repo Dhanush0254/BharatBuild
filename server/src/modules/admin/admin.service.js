@@ -1,6 +1,8 @@
 const Listing = require('../listings/listing.model');
 const User = require('../users/user.model');
 const Inquiry = require('../inquiries/inquiry.model');
+const Booking = require('../bookings/booking.model');
+const Review = require('../reviews/review.model');
 const ApiError = require('../../utils/ApiError');
 
 /**
@@ -94,7 +96,7 @@ const toggleUserStatus = async (userId) => {
 };
 
 /**
- * Get admin dashboard statistics.
+ * Get admin dashboard statistics (V2 — includes bookings & reviews).
  */
 const getDashboardStats = async () => {
   const [
@@ -105,6 +107,11 @@ const getDashboardStats = async () => {
     pendingListings,
     approvedListings,
     totalInquiries,
+    totalBookings,
+    pendingBookings,
+    completedBookings,
+    totalReviews,
+    pendingVerifications,
   ] = await Promise.all([
     User.countDocuments(),
     User.countDocuments({ role: 'provider' }),
@@ -113,6 +120,11 @@ const getDashboardStats = async () => {
     Listing.countDocuments({ status: 'pending' }),
     Listing.countDocuments({ status: 'approved' }),
     Inquiry.countDocuments(),
+    Booking.countDocuments(),
+    Booking.countDocuments({ status: 'pending' }),
+    Booking.countDocuments({ status: 'completed' }),
+    Review.countDocuments(),
+    User.countDocuments({ verificationStatus: 'pending' }),
   ]);
 
   // Category breakdown
@@ -131,9 +143,63 @@ const getDashboardStats = async () => {
     users: { total: totalUsers, providers: totalProviders, seekers: totalSeekers },
     listings: { total: totalListings, pending: pendingListings, approved: approvedListings },
     inquiries: { total: totalInquiries },
+    bookings: { total: totalBookings, pending: pendingBookings, completed: completedBookings },
+    reviews: { total: totalReviews },
+    verifications: { pending: pendingVerifications },
     categoryBreakdown,
     recentListings,
   };
+};
+
+/**
+ * V2: Get pending verification requests.
+ */
+const getVerificationRequests = async ({ page = 1, limit = 20 }) => {
+  const skip = (page - 1) * limit;
+  const filter = { verificationStatus: 'pending' };
+
+  const [users, total] = await Promise.all([
+    User.find(filter)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    User.countDocuments(filter),
+  ]);
+
+  return {
+    users,
+    pagination: { total, page, pages: Math.ceil(total / limit) },
+  };
+};
+
+/**
+ * V2: Approve or reject a verification request.
+ */
+const handleVerification = async (userId, action) => {
+  if (!['verified', 'unverified'].includes(action)) {
+    throw new ApiError(400, 'Action must be "verified" or "unverified"');
+  }
+
+  const user = await User.findById(userId);
+  if (!user) throw new ApiError(404, 'User not found');
+
+  user.verificationStatus = action;
+  await user.save();
+
+  // If verified, also mark all their material listings as verified
+  if (action === 'verified') {
+    await Listing.updateMany(
+      { provider: userId, category: 'materials' },
+      { isVerified: true }
+    );
+  } else {
+    await Listing.updateMany(
+      { provider: userId },
+      { isVerified: false }
+    );
+  }
+
+  return user;
 };
 
 module.exports = {
@@ -143,4 +209,6 @@ module.exports = {
   getAllUsers,
   toggleUserStatus,
   getDashboardStats,
+  getVerificationRequests,
+  handleVerification,
 };

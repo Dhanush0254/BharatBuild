@@ -8,16 +8,14 @@ const router = express.Router();
 // All admin routes require admin role
 router.use(authenticate, authorize('admin'));
 
-// Dashboard
-router.get('/stats', adminController.getDashboardStats);
-
-// Listings moderation
-router.get('/listings', adminController.getAllListings);
-router.get('/listings/pending', adminController.getPendingListings);
+router.get('/stats', adminController.getStats);
+router.get('/pending', adminController.getPendingListings);
 router.patch('/listings/:id/moderate', adminController.moderateListing);
+router.get('/users', adminController.getUsers);
+router.patch('/users/:id/toggle', adminController.toggleUserStatus);
 
-// User management
-router.get('/users', adminController.getAllUsers);
-router.patch('/users/:id/toggle-status', adminController.toggleUserStatus);
+// V2: Verification
+router.get('/verifications', adminController.getVerificationRequests);
+router.patch('/verify/:id', adminController.handleVerification);
 
 module.exports = router;

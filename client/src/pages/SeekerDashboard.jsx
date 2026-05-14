@@ -1,171 +1,293 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
+import { getSeekerBookings, cancelBooking, rebookWorker } from '../api/bookingsApi';
 import { getMySentInquiries } from '../api/inquiriesApi';
+import { getSavedWorkers, unsaveWorker } from '../api/usersApi';
+import { getUserChats, getOrCreateChat } from '../api/chatsApi';
+import ChatWindow from '../components/chat/ChatWindow';
+import BookingModal from '../components/bookings/BookingModal';
+import ReviewForm from '../components/reviews/ReviewForm';
+import StarRating from '../components/ui/StarRating';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
-  LayoutDashboard, MessageCircle, User, MapPin, IndianRupee, Clock, ExternalLink,
+  LayoutDashboard, CalendarCheck, Heart, MessageCircle, Clock, RefreshCw,
+  MapPin, IndianRupee, ExternalLink, X, User, XCircle, Send, CheckCircle, Star
 } from 'lucide-react';
 
-const statusColors = { pending: 'badge-amber', responded: 'badge-green', closed: 'badge-slate' };
+const statusColors = { pending:'badge-amber', accepted:'badge-green', rejected:'badge-red', completed:'badge-blue', cancelled:'badge-slate', responded:'badge-green', closed:'badge-slate' };
 
 const SeekerDashboard = () => {
   const { user } = useAuth();
-  const [page, setPage] = useState(1);
+  const qc = useQueryClient();
+  const [tab, setTab] = useState('bookings');
+  const [selectedChat, setSelectedChat] = useState(null);
+  const [rebookListing, setRebookListing] = useState(null);
+  const [reviewBookingId, setReviewBookingId] = useState(null);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['seeker', 'inquiries', page],
-    queryFn: () => getMySentInquiries({ page, limit: 10 }),
+  const { data: bookingsData, isLoading: bookingsLoading } = useQuery({
+    queryKey: ['seeker', 'bookings'], queryFn: () => getSeekerBookings({ limit: 50 }),
+  });
+  const { data: inquiriesData } = useQuery({
+    queryKey: ['seeker', 'inquiries'], queryFn: () => getMySentInquiries({ limit: 50 }),
+  });
+  const { data: savedData } = useQuery({
+    queryKey: ['seeker', 'saved'], queryFn: getSavedWorkers,
+  });
+  const { data: chatsData } = useQuery({
+    queryKey: ['user-chats'], queryFn: getUserChats,
   });
 
-  const inquiries = data?.inquiries || [];
-  const pagination = data?.pagination;
+  const cancelMut = useMutation({
+    mutationFn: cancelBooking,
+    onSuccess: () => { qc.invalidateQueries(['seeker', 'bookings']); toast.success('Booking cancelled'); },
+    onError: (e) => toast.error(e.response?.data?.message || 'Failed'),
+  });
+  const unsaveMut = useMutation({
+    mutationFn: unsaveWorker,
+    onSuccess: () => { qc.invalidateQueries(['seeker', 'saved']); toast.success('Removed'); },
+  });
+
+  const bookings = bookingsData?.bookings || [];
+  const inquiries = inquiriesData?.inquiries || [];
+  const saved = savedData || [];
+  const chats = chatsData || [];
+
+  const completedBookings = bookings.filter(b => b.status === 'completed');
+
+  const tabs = [
+    { k: 'bookings', l: 'My Bookings', i: CalendarCheck, c: bookings.length },
+    { k: 'saved', l: 'Saved', i: Heart, c: saved.length },
+    { k: 'chats', l: 'Chats', i: MessageCircle, c: chats.length },
+    { k: 'history', l: 'Rebook', i: RefreshCw, c: completedBookings.length },
+    { k: 'inquiries', l: 'Inquiries', i: Send, c: inquiries.length },
+  ];
 
   return (
     <div className="bg-slate-50 min-h-screen">
       <div className="page-container">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <LayoutDashboard size={24} className="text-brand" />
-            My Dashboard
+            <LayoutDashboard size={24} className="text-brand" /> My Dashboard
           </h1>
           <p className="text-text-secondary mt-1">Welcome, {user?.name}</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="card p-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-                <MessageCircle size={18} className="text-amber-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-black text-text-primary">{pagination?.total || 0}</div>
-                <div className="text-xs text-text-muted font-medium">Total Inquiries</div>
-              </div>
-            </div>
-          </div>
-          <div className="card p-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                <Clock size={18} className="text-emerald-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-black text-text-primary">
-                  {inquiries.filter(i => i.status === 'responded').length}
-                </div>
-                <div className="text-xs text-text-muted font-medium">Responded</div>
-              </div>
-            </div>
-          </div>
-          <div className="card p-5">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center">
-                <User size={18} className="text-sky-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-black text-text-primary capitalize">{user?.role}</div>
-                <div className="text-xs text-text-muted font-medium">Account Type</div>
-              </div>
-            </div>
-          </div>
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 bg-white rounded-xl p-1 border border-border overflow-x-auto">
+          {tabs.map(t => (
+            <button key={t.k} onClick={() => { setTab(t.k); setSelectedChat(null); }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
+                tab === t.k ? 'bg-brand text-white shadow-md' : 'text-text-secondary hover:bg-slate-50'
+              }`}>
+              <t.i size={16} />{t.l}
+              {t.c > 0 && <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${tab === t.k ? 'bg-white/20' : 'bg-slate-100'}`}>{t.c}</span>}
+            </button>
+          ))}
         </div>
 
-        {/* Inquiries List */}
-        <div className="mb-6">
-          <h2 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
-            <MessageCircle size={18} className="text-brand" />
-            My Sent Inquiries
-          </h2>
-        </div>
-
-        {isLoading ? (
+        {/* BOOKINGS TAB */}
+        {tab === 'bookings' && (
           <div className="space-y-4">
-            {Array(3).fill(0).map((_, i) => <div key={i} className="skeleton h-32" />)}
-          </div>
-        ) : inquiries.length === 0 ? (
-          <div className="card p-12 text-center">
-            <div className="text-5xl mb-4">📭</div>
-            <h3 className="font-bold text-lg text-text-primary mb-2">No inquiries yet</h3>
-            <p className="text-text-secondary mb-4">Start browsing listings and send your first inquiry.</p>
-            <Link to="/search" className="btn-primary">Browse Listings</Link>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {inquiries.map((inq) => (
-              <div key={inq._id} className="card p-5 hover:shadow-md transition-shadow">
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+            {bookingsLoading ? [1,2,3].map(i => <div key={i} className="skeleton h-28" />) :
+            bookings.length === 0 ? (
+              <div className="card p-12 text-center">
+                <div className="text-5xl mb-4">📅</div>
+                <h3 className="font-bold text-lg mb-2">No bookings yet</h3>
+                <p className="text-text-secondary mb-4">Browse listings and book workers or machinery.</p>
+                <Link to="/search" className="btn-primary">Browse Listings</Link>
+              </div>
+            ) : bookings.map(b => (
+              <div key={b._id} className="card p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex-1 min-w-0">
-                    {/* Listing info */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <Link
-                        to={`/listings/${inq.listing?._id}`}
-                        className="font-bold text-text-primary hover:text-brand transition-colors truncate"
-                      >
-                        {inq.listing?.title || 'Listing'}
+                    <div className="flex items-center gap-2 mb-1">
+                      <Link to={`/listings/${b.listing?._id}`} className="font-bold truncate hover:text-brand transition-colors">
+                        {b.listing?.title || 'Listing'}
                       </Link>
-                      <span className={statusColors[inq.status]}>{inq.status}</span>
+                      <span className={statusColors[b.status]}>{b.status}</span>
                     </div>
-
-                    {/* Provider */}
-                    <div className="flex items-center gap-2 text-sm text-text-secondary mb-2">
-                      <User size={14} />
-                      <span>Provider: <span className="font-medium">{inq.provider?.name || 'N/A'}</span></span>
-                      {inq.provider?.phone && <span className="text-text-muted">• 📞 {inq.provider.phone}</span>}
-                    </div>
-
-                    {/* Message */}
-                    <p className="text-sm text-text-secondary bg-slate-50 rounded-lg px-3 py-2 mb-2 leading-relaxed">
-                      "{inq.message}"
-                    </p>
-
-                    {/* Meta */}
                     <div className="flex flex-wrap gap-3 text-xs text-text-muted">
-                      {inq.listing?.category && (
-                        <span className="capitalize">{inq.listing.category} → {inq.listing.subCategory}</span>
-                      )}
-                      {inq.listing?.pricing && (
-                        <span className="flex items-center gap-0.5">
-                          <IndianRupee size={10} />{inq.listing.pricing.amount}/{inq.listing.pricing.unit}
-                        </span>
-                      )}
-                      <span>📅 {new Date(inq.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                      <span className="capitalize">{b.listing?.category} → {b.listing?.subCategory}</span>
+                      <span className="flex items-center gap-1"><MapPin size={11} />{b.listing?.address?.area}</span>
+                      <span className="flex items-center gap-1"><IndianRupee size={11} />{b.totalAmount?.toLocaleString('en-IN')}</span>
+                      <span className="flex items-center gap-1"><Clock size={11} />{new Date(b.dates?.start).toLocaleDateString('en-IN')} → {new Date(b.dates?.end).toLocaleDateString('en-IN')}</span>
                     </div>
+                    {b.provider && <p className="text-xs text-text-muted mt-1"><User size={11} className="inline mr-1" />Provider: {b.provider.name}</p>}
                   </div>
-
-                  {/* Action */}
-                  <Link
-                    to={`/listings/${inq.listing?._id}`}
-                    className="btn-secondary btn-sm shrink-0"
-                  >
-                    <ExternalLink size={14} /> View Listing
-                  </Link>
+                  <div className="flex gap-2 shrink-0 flex-wrap">
+                    {b.status === 'pending' && (
+                      <button onClick={() => { if(confirm('Cancel this booking?')) cancelMut.mutate(b._id); }}
+                        className="btn-ghost btn-sm text-red-500"><XCircle size={14} />Cancel</button>
+                    )}
+                    {b.status === 'completed' && !b._reviewed && (
+                      <button onClick={() => setReviewBookingId(b._id)} className="btn-secondary btn-sm"><Star size={14} />Review</button>
+                    )}
+                    <Link to={`/listings/${b.listing?._id}`} className="btn-secondary btn-sm"><ExternalLink size={14} />View</Link>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Pagination */}
-        {pagination && pagination.pages > 1 && (
-          <div className="flex justify-center gap-2 mt-8">
-            {Array.from({ length: pagination.pages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                className={`w-10 h-10 rounded-lg text-sm font-semibold transition-all ${
-                  p === pagination.page
-                    ? 'bg-brand text-white shadow-md'
-                    : 'bg-white border border-border text-text-secondary hover:border-brand'
-                }`}
-              >
-                {p}
-              </button>
+        {/* SAVED TAB */}
+        {tab === 'saved' && (
+          <div>
+            {saved.length === 0 ? (
+              <div className="card p-12 text-center">
+                <div className="text-5xl mb-4">❤️</div>
+                <h3 className="font-bold text-lg mb-2">No saved workers</h3>
+                <p className="text-text-secondary mb-4">Save workers and services you like for quick access.</p>
+                <Link to="/search" className="btn-primary">Browse Listings</Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {saved.map(listing => (
+                  <div key={listing._id} className="card-hover group">
+                    <Link to={`/listings/${listing._id}`} className="block p-5">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="badge-amber capitalize text-xs">{listing.subCategory}</span>
+                        {listing.ratings?.average > 0 && <StarRating rating={listing.ratings.average} count={listing.ratings.count} size={12} />}
+                      </div>
+                      <h3 className="font-bold text-text-primary truncate group-hover:text-brand transition-colors">{listing.title}</h3>
+                      <p className="text-xs text-text-muted mt-1 flex items-center gap-1"><MapPin size={11} />{listing.address?.area}</p>
+                      <p className="text-brand font-bold mt-2 flex items-center"><IndianRupee size={14} />{listing.pricing?.amount}/{listing.pricing?.unit}</p>
+                    </Link>
+                    <div className="px-5 pb-4">
+                      <button onClick={() => unsaveMut.mutate(listing._id)} className="btn-ghost btn-sm text-red-500 w-full"><X size={14} />Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* CHATS TAB */}
+        {tab === 'chats' && (
+          <div className="card overflow-hidden" style={{ minHeight: '500px' }}>
+            <div className="flex h-[600px]">
+              {/* Chat List */}
+              <div className={`w-full lg:w-80 border-r border-border overflow-y-auto ${selectedChat ? 'hidden lg:block' : ''}`}>
+                {chats.length === 0 ? (
+                  <div className="p-8 text-center text-text-muted text-sm">No conversations yet</div>
+                ) : chats.map(chat => {
+                  const other = chat.participants?.find(p => p._id !== user._id);
+                  return (
+                    <button key={chat._id} onClick={() => setSelectedChat(chat)}
+                      className={`w-full text-left p-4 border-b border-border hover:bg-slate-50 transition-colors ${selectedChat?._id === chat._id ? 'bg-slate-50' : ''}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center text-brand font-bold shrink-0">
+                          {other?.name?.[0] || '?'}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-sm truncate">{other?.name}</span>
+                            {chat.myUnreadCount > 0 && <span className="w-5 h-5 bg-brand text-white text-[10px] rounded-full flex items-center justify-center font-bold">{chat.myUnreadCount}</span>}
+                          </div>
+                          <p className="text-xs text-text-muted truncate mt-0.5">{chat.lastMessage?.text || 'No messages'}</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Chat Window */}
+              <div className={`flex-1 ${!selectedChat ? 'hidden lg:flex items-center justify-center' : 'flex flex-col'}`}>
+                {selectedChat ? (
+                  <ChatWindow chat={selectedChat} onBack={() => setSelectedChat(null)} />
+                ) : (
+                  <div className="text-center text-text-muted"><MessageCircle size={48} className="mx-auto mb-3 opacity-30" /><p>Select a conversation</p></div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* REBOOK/HISTORY TAB */}
+        {tab === 'history' && (
+          <div className="space-y-4">
+            {completedBookings.length === 0 ? (
+              <div className="card p-12 text-center">
+                <div className="text-5xl mb-4">🔄</div>
+                <h3 className="font-bold text-lg mb-2">No completed bookings</h3>
+                <p className="text-text-secondary">Complete a booking to rebook the same worker later.</p>
+              </div>
+            ) : completedBookings.map(b => (
+              <div key={b._id} className="card p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold truncate">{b.listing?.title}</h3>
+                    <span className="badge-blue">Completed</span>
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs text-text-muted">
+                    <span><User size={11} className="inline mr-1" />{b.provider?.name}</span>
+                    <span className="flex items-center gap-1"><IndianRupee size={11} />{b.totalAmount?.toLocaleString('en-IN')}</span>
+                    <span>{new Date(b.dates?.start).toLocaleDateString('en-IN')} → {new Date(b.dates?.end).toLocaleDateString('en-IN')}</span>
+                  </div>
+                </div>
+                <button onClick={() => setRebookListing(b.listing)}
+                  className="btn-primary btn-sm"><RefreshCw size={14} />Rebook Worker</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* INQUIRIES TAB */}
+        {tab === 'inquiries' && (
+          <div className="space-y-4">
+            {inquiries.length === 0 ? (
+              <div className="card p-12 text-center">
+                <div className="text-5xl mb-4">📭</div>
+                <h3 className="font-bold text-lg mb-2">No inquiries yet</h3>
+                <Link to="/search" className="btn-primary">Browse Listings</Link>
+              </div>
+            ) : inquiries.map(inq => (
+              <div key={inq._id} className="card p-5 hover:shadow-md transition-shadow">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Link to={`/listings/${inq.listing?._id}`} className="font-bold hover:text-brand truncate">{inq.listing?.title || 'Listing'}</Link>
+                      <span className={statusColors[inq.status]}>{inq.status}</span>
+                    </div>
+                    <p className="text-sm text-text-secondary bg-slate-50 rounded-lg px-3 py-2 mb-2">"{inq.message}"</p>
+                    <div className="flex flex-wrap gap-3 text-xs text-text-muted">
+                      <span><User size={11} className="inline mr-1" />{inq.provider?.name}</span>
+                      <span>📅 {new Date(inq.createdAt).toLocaleDateString('en-IN')}</span>
+                    </div>
+                  </div>
+                  <Link to={`/listings/${inq.listing?._id}`} className="btn-secondary btn-sm shrink-0"><ExternalLink size={14} />View</Link>
+                </div>
+              </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Rebook Modal */}
+      {rebookListing && (
+        <BookingModal listing={rebookListing} isRebook onClose={() => setRebookListing(null)}
+          onSubmit={async (data) => {
+            const completedB = completedBookings.find(b => b.listing?._id === rebookListing._id);
+            if (completedB) await rebookWorker(completedB._id, data);
+            qc.invalidateQueries(['seeker', 'bookings']);
+          }} />
+      )}
+
+      {/* Review Modal */}
+      {reviewBookingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">Leave a Review</h2>
+              <button onClick={() => setReviewBookingId(null)} className="p-1 hover:bg-slate-100 rounded-lg"><X size={20} /></button>
+            </div>
+            <ReviewForm bookingId={reviewBookingId} onSuccess={() => { setReviewBookingId(null); qc.invalidateQueries(['seeker', 'bookings']); }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -4,8 +4,7 @@ const listingSchema = new mongoose.Schema({
   provider: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    // Temporarily optional until Auth is added in Phase 3
-    required: false, 
+    required: true,
   },
   category: {
     type: String,
@@ -79,7 +78,33 @@ const listingSchema = new mongoose.Schema({
   inquiryCount: {
     type: Number,
     default: 0,
-  }
+  },
+
+  // ── V2: Worker/Provider Status ────────────────────────────────────
+  workerStatus: {
+    type: String,
+    enum: ['active', 'busy', 'unavailable'],
+    default: 'active',
+  },
+
+  // ── V2: Ratings (aggregated from reviews) ─────────────────────────
+  ratings: {
+    average: { type: Number, default: 0, min: 0, max: 5 },
+    count: { type: Number, default: 0 },
+  },
+
+  // ── V2: Unavailable dates (blocked by bookings) ───────────────────
+  unavailableDates: [{
+    start: Date,
+    end: Date,
+  }],
+
+  // ── V2: Verified Material Shop ────────────────────────────────────
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+
 }, {
   timestamps: true,
 });
@@ -88,6 +113,8 @@ const listingSchema = new mongoose.Schema({
 listingSchema.index({ location: '2dsphere' });
 listingSchema.index({ category: 1, subCategory: 1 });
 listingSchema.index({ 'address.area': 1 });
+listingSchema.index({ workerStatus: 1 });
+listingSchema.index({ 'ratings.average': -1 });
 
 const Listing = mongoose.model('Listing', listingSchema);
 module.exports = Listing;

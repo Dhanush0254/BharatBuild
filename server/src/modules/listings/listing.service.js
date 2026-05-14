@@ -13,6 +13,7 @@ const searchListings = async (query) => {
     category, subCategory, area, district,
     minPrice, maxPrice,
     search,
+    isVerified, isAvailable,
     page = 1, limit = 12,
     sort = 'newest',
   } = query;
@@ -20,8 +21,10 @@ const searchListings = async (query) => {
   const pipeline = [];
 
   // 1. $geoNear (MUST be first stage if used)
-  if (lng && lat) {
-    pipeline.push(buildGeoNearStage(lng, lat, radius));
+  const parsedLng = parseFloat(lng);
+  const parsedLat = parseFloat(lat);
+  if (!isNaN(parsedLng) && !isNaN(parsedLat)) {
+    pipeline.push(buildGeoNearStage(parsedLng, parsedLat, radius));
   }
 
   // 2. $match filters
@@ -46,10 +49,13 @@ const searchListings = async (query) => {
     ];
   }
 
+  if (isVerified === 'true') matchStage.isVerified = true;
+  if (isAvailable === 'true') matchStage.workerStatus = 'active';
+
   pipeline.push({ $match: matchStage });
 
   // 3. Sorting
-  if (lng && lat && sort === 'nearest') {
+  if (!isNaN(parsedLng) && !isNaN(parsedLat) && sort === 'nearest') {
     // Already sorted by distance from $geoNear
   } else if (sort === 'price_asc') {
     pipeline.push({ $sort: { 'pricing.amount': 1 } });

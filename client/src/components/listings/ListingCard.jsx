@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, IndianRupee, Eye, MessageCircle } from 'lucide-react';
 
@@ -16,6 +17,8 @@ const categoryIcons = {
 };
 
 const ListingCard = ({ listing, setHoveredListingId }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   return (
     <Link 
       to={`/listings/${listing._id}`} 
@@ -26,7 +29,19 @@ const ListingCard = ({ listing, setHoveredListingId }) => {
       {/* Image / Placeholder */}
       <div className="h-48 bg-gradient-to-br from-slate-100 to-slate-200 relative overflow-hidden">
         {listing.images && listing.images.length > 0 ? (
-          <img src={listing.images[0].url} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          <>
+            {!imageLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-200">
+                <div className="w-8 h-8 border-4 border-slate-300 border-t-brand rounded-full animate-spin"></div>
+              </div>
+            )}
+            <img 
+              src={listing.images[0].url} 
+              alt={listing.title} 
+              onLoad={() => setImageLoaded(true)}
+              className={`w-full h-full object-cover group-hover:scale-105 transition-all duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`} 
+            />
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-5xl">
             {categoryIcons[listing.category] || '📦'}
