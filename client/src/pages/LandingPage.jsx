@@ -27,7 +27,7 @@ const LandingPage = () => {
     e.preventDefault();
     if (search.trim() || category) {
       const params = new URLSearchParams();
-      if (search.trim()) params.append('q', search.trim());
+      if (search.trim()) params.append('search', search.trim());
       if (category) params.append('category', category);
       navigate(`/search?${params.toString()}`);
     } else {

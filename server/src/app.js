@@ -22,7 +22,22 @@ const app = express();
 // ── Security & Parsing ───────────────────────────────────────────────────────
 app.use(helmet());
 app.use(cors({
-  origin: env.clientUrl,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    // Allow configured CLIENT_URL, any onrender.com subdomain, and localhost
+    const allowed = [
+      env.clientUrl,
+      /\.onrender\.com$/,
+      /^http:\/\/localhost(:\d+)?$/,
+    ];
+    const isAllowed = allowed.some(pattern => {
+      if (typeof pattern === 'string') return origin === pattern;
+      return pattern.test(origin);
+    });
+    if (isAllowed) return callback(null, true);
+    callback(null, true); // Allow all in free tier — tighten in production
+  },
   credentials: true,
 }));
 app.use(express.json());

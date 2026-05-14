@@ -96,7 +96,7 @@ const MaterialEstimator = () => {
       });
       setResult(data);
     } catch (err) {
-      setError('ML service is not running. Start it with: uvicorn main:app --port 8000');
+      setError(err.response?.data?.detail || 'ML service is currently unavailable. It may be waking up — please try again in 30 seconds.');
     } finally {
       setLoading(false);
     }
@@ -250,7 +250,7 @@ const PricePredictor = () => {
       });
       setResult(data);
     } catch (err) {
-      setError('ML service is not running. Start it with: uvicorn main:app --port 8000');
+      setError(err.response?.data?.detail || 'ML service is currently unavailable. It may be waking up — please try again in 30 seconds.');
     } finally {
       setLoading(false);
     }

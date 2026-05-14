@@ -181,6 +181,18 @@ const SearchPage = () => {
   const apiParams = { ...filters };
   if (apiParams.category === 'all') delete apiParams.category;
   if (apiParams.subCategory === '') delete apiParams.subCategory;
+  // Backend expects 'radius', not 'maxDistance'
+  if (apiParams.maxDistance) {
+    apiParams.radius = apiParams.maxDistance;
+    delete apiParams.maxDistance;
+  }
+  // Remove empty/null values to keep API calls clean
+  if (!apiParams.search) delete apiParams.search;
+  if (!apiParams.minPrice) delete apiParams.minPrice;
+  if (!apiParams.maxPrice) delete apiParams.maxPrice;
+  if (!apiParams.lat || !apiParams.lng) { delete apiParams.lat; delete apiParams.lng; delete apiParams.radius; }
+  if (!apiParams.isVerified) delete apiParams.isVerified;
+  if (!apiParams.isAvailable) delete apiParams.isAvailable;
   apiParams.limit = 50;
   const { data, isLoading, error } = useSearchListings(apiParams);
 
@@ -316,6 +328,20 @@ const FilterSidebar = ({ filters, handleFilterChange, applyFilters, clearFilters
 
   return (
     <form onSubmit={applyFilters} className="space-y-6">
+      {/* Category */}
+      <div>
+        <h3 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-3">Category</h3>
+        <div className="flex flex-wrap gap-2">
+          {categories.map(cat => (
+            <button key={cat.id} type="button"
+              onClick={() => handleFilterChange('category', cat.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filters.category === cat.id ? 'bg-brand text-white shadow-md' : 'bg-slate-100 text-text-secondary hover:bg-slate-200'}`}>
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Subcategory */}
       {activeCategory && activeCategory.id !== 'all' && (
         <div>
