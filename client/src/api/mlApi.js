@@ -18,6 +18,11 @@ export const predictPrice = async (data) => {
   return response.data;
 };
 
+export const validateProductPrice = async (data) => {
+  const response = await mlApi.post('/predict/product-price', data);
+  return response.data;
+};
+
 export const getMarketRates = async () => {
   const response = await mlApi.get('/market-rates');
   return response.data;

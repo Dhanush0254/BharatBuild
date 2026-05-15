@@ -31,7 +31,7 @@ def _init():
     try:
         import google.generativeai as genai_legacy
         genai_legacy.configure(api_key=GEMINI_API_KEY)
-        _client = genai_legacy.GenerativeModel("gemini-2.5-flash")
+        _client = genai_legacy.GenerativeModel("gemini-1.5-flash")
         print("[OK] Gemini AI initialized (legacy google-generativeai SDK)")
     except (ImportError, Exception) as e:
         print(f"[ERROR] Could not initialize any Gemini SDK: {e}")
@@ -50,12 +50,11 @@ def generate(prompt: str, max_retries: int = 2) -> str:
     if _client is None:
         return None
 
-    # Models ordered by available free-tier quota (2025 quotas)
-    # gemini-2.0-flash has 0 quota; use 2.5+ models instead
+    # Use stable models available in the free tier
     models_to_try = [
-        "gemini-2.5-flash",        # 5 RPM, 250K TPM, 20 RPD
-        "gemini-2.5-flash-lite",   # 10 RPM, 250K TPM, 20 RPD
-        "gemini-3.1-flash-lite",   # 15 RPM, 250K TPM, 500 RPD
+        "gemini-1.5-flash",        # High quota, fast
+        "gemini-1.5-flash-8b",     # Even faster, lower quota
+        "gemini-1.0-pro",          # Legacy but stable
     ]
 
     for model_name in models_to_try:
@@ -70,7 +69,11 @@ def generate(prompt: str, max_retries: int = 2) -> str:
                     return response.text.strip()
                 else:
                     # Legacy SDK fallback
-                    response = _client.generate_content(prompt)
+                    # Note: Legacy GenerativeModel object is bound to a model name.
+                    # We need to re-initialize if we want to try a different model.
+                    import google.generativeai as genai_legacy
+                    temp_model = genai_legacy.GenerativeModel(model_name)
+                    response = temp_model.generate_content(prompt)
                     return response.text.strip()
 
             except Exception as e:

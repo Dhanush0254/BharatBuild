@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 // Layouts & UI
 import MainLayout from './layouts/MainLayout';
@@ -16,6 +18,13 @@ import AdminDashboard from './pages/AdminDashboard';
 import ListingDetailPage from './pages/ListingDetailPage';
 import EstimatorPage from './pages/EstimatorPage';
 
+// V3: Commerce & Logistics Pages
+import MaterialsPage from './pages/MaterialsPage';
+import ProductDetailPage from './pages/ProductDetailPage';
+import CartPage from './pages/CartPage';
+import TransportPage from './pages/TransportPage';
+import MapPage from './pages/MapPage';
+
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -23,6 +32,12 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin"></div></div>;
   }
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      toast.error('Please login to access this section.', { id: 'auth-toast' });
+    }
+  }, [loading, isAuthenticated]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -41,13 +56,30 @@ function AppRoutes() {
       <Route element={<MainLayout />}>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/listings/:id" element={<ListingDetailPage />} />
-        <Route path="/estimator" element={<EstimatorPage />} />
+        {/* Protected Routes (Everything except Home/Auth) */}
+        <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+        <Route path="/listings/:id" element={<ProtectedRoute><ListingDetailPage /></ProtectedRoute>} />
+        <Route path="/estimator" element={<ProtectedRoute><EstimatorPage /></ProtectedRoute>} />
         
+        {/* V3: Commerce & Logistics */}
+        <Route path="/materials" element={<ProtectedRoute><MaterialsPage /></ProtectedRoute>} />
+        <Route path="/materials/:id" element={<ProtectedRoute><ProductDetailPage /></ProtectedRoute>} />
+        <Route path="/transport" element={<ProtectedRoute><TransportPage /></ProtectedRoute>} />
+        <Route path="/map" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
+
         {/* Auth Routes */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
+        {/* Protected: Cart & Orders */}
+        <Route 
+          path="/cart" 
+          element={
+            <ProtectedRoute allowedRoles={['seeker', 'provider']}>
+              <CartPage />
+            </ProtectedRoute>
+          } 
+        />
 
         {/* Protected Provider Routes */}
         <Route 

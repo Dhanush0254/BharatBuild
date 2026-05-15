@@ -1,7 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-  Search, Menu, X, User, LogOut, LayoutDashboard, ChevronDown, Shield,
+  Search, Menu, X, User, LogOut, LayoutDashboard, ChevronDown, Shield, ShoppingCart
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import logoImg from '../assets/logo.png';
@@ -59,11 +59,20 @@ const MainLayout = () => {
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-1">
-              {['workers', 'machinery', 'materials', 'repairs'].map((cat) => (
+              {['workers', 'machinery', 'repairs'].map((cat) => (
                 <Link key={cat} to={`/search?category=${cat}`} className="px-3 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-all capitalize">
                   {cat}
                 </Link>
               ))}
+              <Link to="/materials" className="px-3 py-2 text-sm font-medium text-amber-400 hover:text-white hover:bg-amber-400/10 rounded-lg transition-all border border-amber-500/20">
+                🛒 Materials
+              </Link>
+              <Link to="/transport" className="px-3 py-2 text-sm font-medium text-blue-400 hover:text-white hover:bg-blue-400/10 rounded-lg transition-all border border-blue-500/20">
+                🚚 Transport
+              </Link>
+              <Link to="/map" className="px-3 py-2 text-sm font-medium text-emerald-400 hover:text-white hover:bg-emerald-400/10 rounded-lg transition-all border border-emerald-500/20">
+                🗺️ Live Map
+              </Link>
               <Link to="/estimator" className="px-3 py-2 text-sm font-medium text-indigo-300 hover:text-white hover:bg-indigo-600/30 rounded-lg transition-all flex items-center gap-1.5 border border-indigo-500/20">
                 <span className="text-xs">🤖</span> ML Calculator
               </Link>
@@ -86,6 +95,12 @@ const MainLayout = () => {
               <Link to="/search" className="p-2 text-slate-400 hover:text-white transition-colors">
                 <Search size={20} />
               </Link>
+              
+              {isAuthenticated && (
+                <Link to="/cart" className="p-2 text-slate-400 hover:text-amber-400 transition-colors">
+                  <ShoppingCart size={20} />
+                </Link>
+              )}
 
               {isAuthenticated ? (
                 <div className="relative" ref={dropdownRef}>
@@ -147,9 +162,16 @@ const MainLayout = () => {
             </div>
 
             {/* Mobile menu button */}
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 text-slate-300">
-              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            <div className="md:hidden flex items-center gap-3">
+              {isAuthenticated && (
+                <Link to="/cart" className="p-2 text-slate-300 hover:text-amber-400 transition-colors">
+                  <ShoppingCart size={20} />
+                </Link>
+              )}
+              <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-slate-300">
+                {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -157,12 +179,24 @@ const MainLayout = () => {
         {mobileOpen && (
           <div className="md:hidden border-t border-slate-800 bg-slate-900">
             <div className="px-4 py-4 space-y-2">
-              {['workers', 'machinery', 'materials', 'repairs'].map((cat) => (
+              {['workers', 'machinery', 'repairs'].map((cat) => (
                 <Link key={cat} to={`/search?category=${cat}`} onClick={() => setMobileOpen(false)}
                   className="block px-3 py-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 capitalize font-medium">
                   {cat}
                 </Link>
               ))}
+              <Link to="/materials" onClick={() => setMobileOpen(false)}
+                className="block px-3 py-2 rounded-lg text-amber-400 bg-amber-400/10 font-medium">
+                🛒 Materials
+              </Link>
+              <Link to="/transport" onClick={() => setMobileOpen(false)}
+                className="block px-3 py-2 rounded-lg text-blue-400 bg-blue-400/10 font-medium">
+                🚚 Transport
+              </Link>
+              <Link to="/map" onClick={() => setMobileOpen(false)}
+                className="block px-3 py-2 rounded-lg text-emerald-400 bg-emerald-400/10 font-medium">
+                🗺️ Live Map
+              </Link>
               <Link to="/estimator" onClick={() => setMobileOpen(false)}
                 className="block px-3 py-2 rounded-lg text-indigo-300 hover:text-white hover:bg-indigo-600/20 font-medium">
                 🤖 ML Calculator
@@ -212,14 +246,14 @@ const MainLayout = () => {
                 <img src={logoImg} alt="BharatBuild" className="h-24 w-auto origin-left" />
               </div>
               <p className="text-sm text-slate-400 leading-relaxed">
-                Telangana's premier construction marketplace. Find workers, machinery, and materials near you.
+                Telangana's premier construction marketplace. Find workers, machinery, materials, and transport near you.
               </p>
             </div>
             <div>
               <h4 className="font-semibold text-sm uppercase tracking-wider text-slate-400 mb-4">Categories</h4>
               <div className="space-y-2">
-                {['Workers', 'Machinery', 'Materials', 'Repairs'].map((cat) => (
-                  <Link key={cat} to={`/search?category=${cat.toLowerCase()}`} className="block text-sm text-slate-400 hover:text-brand transition-colors">
+                {['Workers', 'Machinery', 'Materials', 'Transport', 'Repairs'].map((cat) => (
+                  <Link key={cat} to={`/${cat === 'Materials' || cat === 'Transport' ? cat.toLowerCase() : 'search?category=' + cat.toLowerCase()}`} className="block text-sm text-slate-400 hover:text-brand transition-colors">
                     {cat}
                   </Link>
                 ))}

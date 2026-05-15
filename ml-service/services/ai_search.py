@@ -14,16 +14,23 @@ class AISearch:
         Parse the user's search query (which could be in English, Telugu, Hindi, Hinglish, or Telugish).
         Extract the intent, category, subcategory, district/location, and budget intent if present.
         
-        Valid categories: worker, machinery, materials, service
+        Important Synonyms:
+        - "naapa isuka" or "isuka" -> River Sand
+        - "itukallu" -> Bricks
+        - "ukku" -> Steel
+        - "jelly" -> Gravel
+        - "lorry", "truck", "tempo" -> Transport
+        
+        Valid categories: worker, machinery, materials, service, transport
         
         User Query: "{query}"
         
         Return ONLY a JSON object with this exact structure:
         {{
-            "category": "worker|machinery|materials|service|unknown",
-            "subcategory": "specific type (e.g. mestri, jcb, cement, architect)",
+            "category": "worker|machinery|materials|service|transport|unknown",
+            "subcategory": "specific type (e.g. mestri, jcb, cement, architect, lorry, sand)",
             "district": "extracted location or null",
-            "intent": "find_provider|get_estimate|general_query",
+            "intent": "find_provider|get_estimate|general_query|book_transport",
             "budget_intent": "cheap|premium|normal|null"
         }}
         """
@@ -54,9 +61,12 @@ class AISearch:
         if "jcb" in q or "crane" in q or "tractor" in q:
             cat = "machinery"
             subcat = "jcb" if "jcb" in q else "crane" if "crane" in q else "tractor"
-        elif "cement" in q or "sand" in q or "brick" in q:
+        elif "cement" in q or "sand" in q or "brick" in q or "isuka" in q:
             cat = "materials"
-            subcat = "cement" if "cement" in q else "sand" if "sand" in q else "bricks"
+            subcat = "cement" if "cement" in q else "sand" if "sand" in q or "isuka" in q else "bricks"
+        elif "lorry" in q or "truck" in q or "transport" in q:
+            cat = "transport"
+            subcat = "lorry" if "lorry" in q else "truck" if "truck" in q else "transport"
         elif "mestri" in q or "worker" in q or "mason" in q or "plumber" in q:
             cat = "worker"
             subcat = "mestri" if "mestri" in q else "mason" if "mason" in q else "plumber"
@@ -65,7 +75,7 @@ class AISearch:
             "category": cat,
             "subcategory": subcat,
             "district": "Hyderabad" if "hyderabad" in q else None,
-            "intent": "find_provider",
+            "intent": "book_transport" if cat == "transport" else "find_provider",
             "budget_intent": "cheap" if "cheap" in q else "normal"
         }
 

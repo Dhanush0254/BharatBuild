@@ -79,6 +79,20 @@ class PriceResponse(BaseModel):
     confidence: str
     market_insight: str
 
+class ProductPriceValidationRequest(BaseModel):
+    category: str
+    sub_category: str
+    proposed_price: float
+    unit: str
+    area: str
+
+class ProductPriceValidationResponse(BaseModel):
+    is_fair_price: bool
+    status: str  # "GREAT_DEAL", "FAIR", "HIGH", "SUSPICIOUSLY_LOW", "SUSPICIOUSLY_HIGH"
+    market_avg: float
+    difference_percentage: float
+    message: str
+
 
 # ── Telangana Market Price Data (ML knowledge base) ──────────────────
 # Real Hyderabad/Telangana 2024-2025 market rates for price prediction
@@ -252,6 +266,78 @@ def predict_price(req: PriceRequest):
         confidence=confidence,
         market_insight=f"Based on Hyderabad/Telangana market rates for {matched_key.title()}{premium_note}. "
                        f"Rates valid for 2024-25 season.",
+    )
+
+
+@app.post("/predict/product-price", response_model=ProductPriceValidationResponse)
+def validate_product_price(req: ProductPriceValidationRequest):
+    """Evaluate if a product's price is fair, a great deal, or suspiciously priced (fraud detection)."""
+    
+    category = req.category.lower().strip()
+    sub_cat = req.sub_category.lower().strip()
+    
+    if category not in MARKET_PRICES:
+        raise HTTPException(status_code=400, detail=f"Unknown category: {category}")
+        
+    cat_prices = MARKET_PRICES[category]
+    
+    # Fuzzy match subcategory
+    matched_key = None
+    for key in cat_prices:
+        if key in sub_cat or sub_cat in key:
+            matched_key = key
+            break
+            
+    if not matched_key:
+        return ProductPriceValidationResponse(
+            is_fair_price=True,
+            status="UNKNOWN",
+            market_avg=req.proposed_price,
+            difference_percentage=0.0,
+            message=f"No market data for {sub_cat}. Cannot validate."
+        )
+        
+    base = cat_prices[matched_key]
+    min_price = base["min"]
+    max_price = base["max"]
+    avg_price = (min_price + max_price) / 2.0
+    
+    # Simple area premium adjustment
+    area_premium = 1.0
+    if any(pa in req.area.lower() for pa in PREMIUM_AREAS):
+        area_premium = 1.15
+        
+    adj_avg_price = avg_price * area_premium
+    adj_min_price = min_price * area_premium
+    adj_max_price = max_price * area_premium
+    
+    diff_percent = ((req.proposed_price - adj_avg_price) / adj_avg_price) * 100
+    
+    status = "FAIR"
+    is_fair = True
+    msg = f"Price is within the normal market range for {req.area}."
+    
+    if req.proposed_price > (adj_max_price * 1.4):
+        status = "SUSPICIOUSLY_HIGH"
+        is_fair = False
+        msg = f"Price is 40%+ higher than market max. Potential price gouging detected."
+    elif req.proposed_price > adj_max_price:
+        status = "HIGH"
+        msg = "Price is above the typical market range."
+    elif req.proposed_price < (adj_min_price * 0.5):
+        status = "SUSPICIOUSLY_LOW"
+        is_fair = False
+        msg = f"Price is 50%+ below market min. Potential fraud or low-quality material."
+    elif req.proposed_price < adj_min_price:
+        status = "GREAT_DEAL"
+        msg = "Price is below the typical market minimum. Excellent value!"
+        
+    return ProductPriceValidationResponse(
+        is_fair_price=is_fair,
+        status=status,
+        market_avg=round(adj_avg_price, 2),
+        difference_percentage=round(diff_percent, 2),
+        message=msg
     )
 
 

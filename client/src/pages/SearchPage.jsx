@@ -4,6 +4,7 @@ import { useSearchListings } from '../hooks/useListings';
 import { parseAISearch } from '../api/aiApi';
 import { recommendWorkers } from '../api/mlApi';
 import { Filter, Map as MapIcon, List as ListIcon, X, Search as SearchIcon, SlidersHorizontal, MapPin, IndianRupee, ShieldCheck, Sparkles, Loader2, Mic, MicOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import ListingCard from '../components/listings/ListingCard';
 import MapView from '../components/map/MapView';
 import StarRating from '../components/ui/StarRating';
@@ -18,6 +19,7 @@ const categories = [
 
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState('split'); // list, map, split
   const [showFilters, setShowFilters] = useState(false);
   const [hoveredListingId, setHoveredListingId] = useState(null);
@@ -140,8 +142,18 @@ const SearchPage = () => {
       setIsAiParsing(true);
       const parsedData = await parseAISearch(aiQuery);
       
+      if (parsedData.category === 'materials') {
+        navigate(`/materials?search=${parsedData.subCategory || parsedData.search || ''}`);
+        return;
+      }
+      
+      if (parsedData.category === 'transport') {
+        navigate('/transport');
+        return;
+      }
+      
       const newFilters = { ...filters };
-      if (parsedData.category) newFilters.category = parsedData.category.toLowerCase();
+      if (parsedData.category && parsedData.category !== 'unknown') newFilters.category = parsedData.category.toLowerCase();
       if (parsedData.subCategory) newFilters.subCategory = parsedData.subCategory;
       if (parsedData.search) newFilters.search = parsedData.search;
       

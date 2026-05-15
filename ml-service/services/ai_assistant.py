@@ -27,21 +27,34 @@ class AIAssistant:
         """
         
     def chat(self, message: str, context: str = "") -> str:
-        if not self.model:
-            return "AI Assistant is currently unavailable. Please check the API key configuration."
+        model = self.model or get_gemini_model()
+        
+        if not model:
+            # Fallback for when API key is missing or SDK failed to init
+            return self._get_fallback_advice(message)
             
         prompt = f"{self.system_prompt}\n\nContext/Market Data:\n{context}\n\nUser: {message}\nAssistant:"
         
         response = generate(prompt)
-
+        
         if response == "AI_ERROR_QUOTA_EXCEEDED":
             return "BharatBuild AI is currently at its limit (Gemini Free Tier). Please try again in about 60 seconds."
         
         if response and response.startswith("AI_ERROR:"):
-            return "Sorry, I encountered an error. Please try again later."
+            # If it's a specific error, try to return fallback instead of just an error string
+            return self._get_fallback_advice(message)
 
         if not response:
-            return "No response generated."
+            return self._get_fallback_advice(message)
 
         return response
+
+    def _get_fallback_advice(self, message: str) -> str:
+        msg = message.lower()
+        if "cement" in msg or "price" in msg or "rate" in msg:
+            return "To check the latest **Cement** or **Material** rates, please visit our **Market Rates** tab. Currently, cement is approximately ₹350-420 per bag in Telangana."
+        if "worker" in msg or "mestri" in msg or "plumber" in msg:
+            return "You can find verified **Mestris** and **Workers** in our directory. Filter by your location to see available professionals and their ratings."
+        
+        return "I'm currently in offline mode. Please check the **Market Rates** or **Directory** sections for construction info, or ensure the GEMINI_API_KEY is configured."
 ai_assistant = AIAssistant()

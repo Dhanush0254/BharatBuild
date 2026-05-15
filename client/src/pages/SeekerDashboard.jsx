@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { getSeekerBookings, cancelBooking, rebookWorker } from '../api/bookingsApi';
 import { getMySentInquiries } from '../api/inquiriesApi';
+import { getMyOrders } from '../api/ordersApi';
+import { getMyTransportBookings } from '../api/transportApi';
 import { getSavedWorkers, unsaveWorker } from '../api/usersApi';
 import { getUserChats, getOrCreateChat } from '../api/chatsApi';
 import ChatWindow from '../components/chat/ChatWindow';
@@ -14,7 +16,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   LayoutDashboard, CalendarCheck, Heart, MessageCircle, Clock, RefreshCw,
-  MapPin, IndianRupee, ExternalLink, X, User, XCircle, Send, CheckCircle, Star, Navigation
+  MapPin, IndianRupee, ExternalLink, X, User, XCircle, Send, CheckCircle, Star, Navigation, ShoppingBag, Truck, Store
 } from 'lucide-react';
 
 const statusColors = { pending:'badge-amber', accepted:'badge-green', rejected:'badge-red', completed:'badge-blue', cancelled:'badge-slate', responded:'badge-green', closed:'badge-slate' };
@@ -39,6 +41,12 @@ const SeekerDashboard = () => {
   const { data: chatsData } = useQuery({
     queryKey: ['user-chats'], queryFn: getUserChats,
   });
+  const { data: ordersData } = useQuery({
+    queryKey: ['seeker', 'orders'], queryFn: () => getMyOrders({ limit: 50 }),
+  });
+  const { data: transportData } = useQuery({
+    queryKey: ['seeker', 'transport'], queryFn: () => getMyTransportBookings({ limit: 50 }),
+  });
 
   const cancelMut = useMutation({
     mutationFn: cancelBooking,
@@ -54,11 +62,15 @@ const SeekerDashboard = () => {
   const inquiries = inquiriesData?.inquiries || [];
   const saved = savedData || [];
   const chats = chatsData || [];
+  const materialOrders = ordersData?.orders || [];
+  const transportBookings = transportData?.bookings || [];
 
   const completedBookings = bookings.filter(b => b.status === 'completed');
 
   const tabs = [
     { k: 'bookings', l: 'My Bookings', i: CalendarCheck, c: bookings.length },
+    { k: 'orders', l: 'Material Orders', i: ShoppingBag, c: materialOrders.length },
+    { k: 'transport', l: 'Transport', i: Truck, c: transportBookings.length },
     { k: 'saved', l: 'Saved', i: Heart, c: saved.length },
     { k: 'chats', l: 'Chats', i: MessageCircle, c: chats.length },
     { k: 'history', l: 'Rebook', i: RefreshCw, c: completedBookings.length },
@@ -95,12 +107,78 @@ const SeekerDashboard = () => {
             bookings.length === 0 ? (
               <div className="card p-12 text-center">
                 <div className="text-5xl mb-4">📅</div>
-                <h3 className="font-bold text-lg mb-2">No bookings yet</h3>
+                <h3 className="font-bold text-lg mb-2">No service bookings yet</h3>
                 <p className="text-text-secondary mb-4">Browse listings and book workers or machinery.</p>
                 <Link to="/search" className="btn-primary">Browse Listings</Link>
               </div>
             ) : bookings.map(b => (
               <SeekerBookingCard key={b._id} booking={b} cancelMut={cancelMut} setReviewBookingId={setReviewBookingId} />
+            ))}
+          </div>
+        )}
+
+        {/* ORDERS TAB */}
+        {tab === 'orders' && (
+          <div className="space-y-4">
+            {materialOrders.length === 0 ? (
+              <div className="card p-12 text-center">
+                <div className="text-5xl mb-4">🛒</div>
+                <h3 className="font-bold text-lg mb-2">No material orders</h3>
+                <p className="text-text-secondary mb-4">Buy construction materials from verified shops.</p>
+                <Link to="/materials" className="btn-primary">Shop Materials</Link>
+              </div>
+            ) : materialOrders.map(o => (
+              <div key={o._id} className="card p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-xl shrink-0">📦</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold truncate">Order #{o._id.slice(-6).toUpperCase()}</h3>
+                      <span className={statusColors[o.status] || 'badge-slate'}>{o.status}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-xs text-text-muted mt-1">
+                      <span className="flex items-center gap-1"><Store size={11} /> {o.shop?.name}</span>
+                      <span className="flex items-center gap-1"><IndianRupee size={11} /> {o.totalAmount?.toLocaleString()}</span>
+                      <span>{o.items?.length} items</span>
+                      <span>{new Date(o.createdAt).toLocaleDateString('en-IN')}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* TRANSPORT TAB */}
+        {tab === 'transport' && (
+          <div className="space-y-4">
+            {transportBookings.length === 0 ? (
+              <div className="card p-12 text-center">
+                <div className="text-5xl mb-4">🚚</div>
+                <h3 className="font-bold text-lg mb-2">No transport bookings</h3>
+                <p className="text-text-secondary mb-4">Book trucks, tractors, and tempos for delivery.</p>
+                <Link to="/transport" className="btn-primary">Book Transport</Link>
+              </div>
+            ) : transportBookings.map(t => (
+              <div key={t._id} className="card p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-xl text-blue-500 shrink-0"><Truck /></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold truncate capitalize">{t.vehicleTypeRequested.replace('_', ' ')}</h3>
+                      <span className={statusColors[t.status] || 'badge-slate'}>{t.status.replace('_', ' ')}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 text-xs text-text-muted mt-2">
+                      <span className="flex items-center gap-1 text-slate-700 font-medium"><MapPin size={11} className="text-emerald-500" /> Pickup: {t.pickup?.address}</span>
+                      <span className="flex items-center gap-1 text-slate-700 font-medium"><MapPin size={11} className="text-red-500" /> Drop: {t.drop?.address}</span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-3 text-xs text-slate-500 font-medium">
+                      {t.driver && <span className="flex items-center gap-1"><User size={11} /> {t.driver.name}</span>}
+                      {t.estimatedPrice > 0 && <span className="flex items-center gap-1 text-slate-800"><IndianRupee size={11} /> {t.finalPrice || t.estimatedPrice}</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         )}

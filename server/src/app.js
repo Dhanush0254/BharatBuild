@@ -17,6 +17,13 @@ const reviewRoutes = require('./modules/reviews/review.routes');
 const chatRoutes = require('./modules/chats/chat.routes');
 const aiRoutes = require('./modules/ai/ai.routes');
 
+// V3: Commerce & Logistics
+const productRoutes = require('./modules/products/product.routes');
+const cartRoutes = require('./modules/carts/cart.routes');
+const orderRoutes = require('./modules/orders/order.routes');
+const vehicleRoutes = require('./modules/vehicles/vehicle.routes');
+const transportRoutes = require('./modules/transport/transport.routes');
+
 const app = express();
 
 // ── Security & Parsing ───────────────────────────────────────────────────────
@@ -63,6 +70,13 @@ app.use('/api/v1/bookings', bookingRoutes);
 app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/ai', aiRoutes);
+
+// V3: Commerce & Logistics
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/cart', cartRoutes);
+app.use('/api/v1/orders', orderRoutes);
+app.use('/api/v1/vehicles', vehicleRoutes);
+app.use('/api/v1/transport', transportRoutes);
 
 // Root Route
 app.get('/', (req, res) => {
