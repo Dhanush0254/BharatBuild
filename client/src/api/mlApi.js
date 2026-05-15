@@ -22,3 +22,29 @@ export const getMarketRates = async () => {
   const response = await mlApi.get('/market-rates');
   return response.data;
 };
+
+export const chatWithAssistant = async (message, context = "") => {
+  const response = await mlApi.post('/api/ai/chat', { message, context });
+  return response.data;
+};
+
+export const recommendWorkers = async (user_req, workers) => {
+  const response = await mlApi.post('/api/ml/recommend-workers', { user_req, workers });
+  return response.data;
+};
+
+export const getDemandHeatmap = async (inquiries) => {
+  const response = await mlApi.post('/api/ml/demand-heatmap', { inquiries });
+  return response.data;
+};
+
+export const detectSpam = async (listing) => {
+  const response = await mlApi.post('/api/ml/detect-spam', { listing });
+  return response.data;
+};
+
+export const scoreListing = async (listing) => {
+  const response = await mlApi.post('/api/ml/score-listing', { listing });
+  return response.data;
+};
+

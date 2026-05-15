@@ -15,6 +15,9 @@ import joblib
 import numpy as np
 import os
 
+from routes.ml_routes import router as ml_router
+from routes.ai_routes import router as ai_router
+
 app = FastAPI(
     title="BharatBuild ML Service",
     description="Construction material estimation & price prediction powered by scikit-learn",
@@ -261,3 +264,7 @@ def get_market_rates():
         "premium_areas": PREMIUM_AREAS,
         "source": "Hyderabad/Telangana construction market 2024-25",
     }
+
+# ── Include Routers ───────────────────────────────────────────────────
+app.include_router(ml_router)
+app.include_router(ai_router)

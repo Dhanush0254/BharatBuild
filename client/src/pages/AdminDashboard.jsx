@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAdminStats, getPendingListings, moderateListing, getAdminUsers, toggleUserStatus, getVerificationRequests, handleVerification } from '../api/adminApi';
 import toast from 'react-hot-toast';
-import { Shield, BarChart3, Clock, Users, CheckCircle, XCircle, UserX, UserCheck, MapPin, IndianRupee, ShieldCheck, CalendarCheck, Star, MessageCircle } from 'lucide-react';
+import MLDemandHeatmap from '../components/ui/MLDemandHeatmap';
+import { Shield, BarChart3, Clock, Users, CheckCircle, XCircle, UserX, UserCheck, MapPin, IndianRupee, ShieldCheck, CalendarCheck, Star, MessageCircle, Map as MapIcon } from 'lucide-react';
+import MLAnalyzer from '../components/ui/MLAnalyzer';
 
 const sc = { pending:'badge-amber', approved:'badge-green', rejected:'badge-red' };
 
@@ -73,6 +75,9 @@ const AdminDashboard = () => {
                 </div>
               ))}
             </div>
+            
+            <MLDemandHeatmap />
+
             {stats.categoryBreakdown&&(
               <div className="card p-6">
                 <h3 className="font-bold mb-4">Category Breakdown</h3>
@@ -108,6 +113,7 @@ const AdminDashboard = () => {
                       <span>By: {l.provider?.name||'Unknown'}</span>
                     </div>
                     <p className="text-sm text-text-secondary mt-2 line-clamp-2">{l.description}</p>
+                    <MLAnalyzer listing={l} />
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button onClick={()=>modMut.mutate({id:l._id,action:'approved'})} className="btn-primary btn-sm"><CheckCircle size={14}/>Approve</button>

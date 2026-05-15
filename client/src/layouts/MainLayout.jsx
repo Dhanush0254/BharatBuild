@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import logoImg from '../assets/logo.png';
+import AIAssistantWidget from '../components/ui/AIAssistantWidget';
 
 const MainLayout = () => {
   const { user, isAuthenticated, isSeeker, isProvider, isAdmin, logout } = useAuth();
@@ -252,6 +253,8 @@ const MainLayout = () => {
           </div>
         </div>
       </footer>
+      
+      <AIAssistantWidget />
     </div>
   );
 };

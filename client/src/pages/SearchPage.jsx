@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSearchListings } from '../hooks/useListings';
 import { parseAISearch } from '../api/aiApi';
+import { recommendWorkers } from '../api/mlApi';
 import { Filter, Map as MapIcon, List as ListIcon, X, Search as SearchIcon, SlidersHorizontal, MapPin, IndianRupee, ShieldCheck, Sparkles, Loader2, Mic, MicOff } from 'lucide-react';
 import ListingCard from '../components/listings/ListingCard';
 import MapView from '../components/map/MapView';
@@ -26,6 +27,8 @@ const SearchPage = () => {
   const [aiQuery, setAiQuery] = useState('');
   const [isAiParsing, setIsAiParsing] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [mlSortLoading, setMlSortLoading] = useState(false);
+  const [recommendedOrder, setRecommendedOrder] = useState(null);
 
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -159,6 +162,7 @@ const SearchPage = () => {
     setLocationName('');
     setSearchParams(new URLSearchParams());
     setShowFilters(false);
+    setRecommendedOrder(null);
   };
 
   const getUserLocation = () => {
@@ -196,7 +200,47 @@ const SearchPage = () => {
   apiParams.limit = 200;
   const { data, isLoading, error } = useSearchListings(apiParams);
 
-  const listings = data?.listings || [];
+  let listings = data?.listings || [];
+
+  if (recommendedOrder) {
+    // Sort listings based on the order returned by ML Recommender
+    listings = [...listings].sort((a, b) => {
+      const idxA = recommendedOrder.findIndex(r => r.worker_id === a._id);
+      const idxB = recommendedOrder.findIndex(r => r.worker_id === b._id);
+      if (idxA === -1 && idxB === -1) return 0;
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    });
+  }
+
+  const handleMlRecommend = async () => {
+    if (listings.length === 0) return;
+    try {
+      setMlSortLoading(true);
+      const workersPayload = listings.map(l => ({
+        id: l._id,
+        category: l.category,
+        sub_category: l.subCategory,
+        rating: l.provider?.rating || 0,
+        reviews: l.provider?.reviewCount || 0,
+        price: l.pricing?.amount || 0,
+        experience: l.provider?.experience || 0,
+      }));
+      const reqPayload = {
+        category: filters.category !== 'all' ? filters.category : 'any',
+        max_price: parseInt(filters.maxPrice) || 10000,
+        min_rating: 0
+      };
+      const result = await recommendWorkers(reqPayload, workersPayload);
+      setRecommendedOrder(result.recommendations);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to get ML recommendations');
+    } finally {
+      setMlSortLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
@@ -271,10 +315,21 @@ const SearchPage = () => {
         <div className={`flex-1 overflow-y-auto bg-slate-50 relative ${viewMode === 'map' ? 'hidden lg:block lg:absolute lg:top-4 lg:left-4 lg:z-10 lg:w-[400px] lg:h-[calc(100%-32px)] lg:bg-transparent lg:pointer-events-none' : ''}`}>
           <div className={`p-4 lg:p-6 ${viewMode === 'map' ? 'lg:p-0 h-full' : ''}`}>
             
-            <div className={`mb-4 flex items-center justify-between ${viewMode === 'map' ? 'bg-white p-4 rounded-xl shadow-lg pointer-events-auto' : ''}`}>
+            <div className={`mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${viewMode === 'map' ? 'bg-white p-4 rounded-xl shadow-lg pointer-events-auto' : ''}`}>
               <h1 className="text-lg sm:text-xl font-bold text-text-primary capitalize">
                 {isLoading ? 'Searching...' : `${data?.pagination?.total || 0} ${filters.category !== 'all' ? filters.category : 'Results'} Found`}
               </h1>
+              
+              {!isLoading && listings.length > 0 && (
+                <button 
+                  onClick={handleMlRecommend} 
+                  disabled={mlSortLoading}
+                  className="flex items-center gap-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-4 py-2 rounded-lg text-sm font-bold transition-colors w-fit"
+                >
+                  {mlSortLoading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                  Sort by ML Recommendation
+                </button>
+              )}
             </div>
 
             {isLoading ? (
@@ -294,9 +349,19 @@ const SearchPage = () => {
                 ${viewMode === 'map' ? 'grid-cols-1 overflow-y-auto h-[calc(100%-70px)] pr-2 scrollbar-thin' : 
                   viewMode === 'split' ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-2' : 
                   'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
-                {listings.map(listing => (
-                  <ListingCard key={listing._id} listing={listing} setHoveredListingId={setHoveredListingId} />
-                ))}
+                {listings.map(listing => {
+                  const isRecommended = recommendedOrder && recommendedOrder[0]?.worker_id === listing._id;
+                  return (
+                    <div key={listing._id} className="relative">
+                      {isRecommended && (
+                        <div className="absolute -top-3 left-4 z-10 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-0.5 rounded-full text-xs font-bold shadow-md flex items-center gap-1 border-2 border-white">
+                          <Sparkles size={12} /> Top Match
+                        </div>
+                      )}
+                      <ListingCard listing={listing} setHoveredListingId={setHoveredListingId} />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
