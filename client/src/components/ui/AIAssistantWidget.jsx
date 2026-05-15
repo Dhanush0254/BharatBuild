@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Bot, X, Send, Loader2, Minimize2, Maximize2 } from 'lucide-react';
 import { chatWithAssistant } from '../../api/mlApi';
 
@@ -6,7 +7,7 @@ const AIAssistantWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hi! I am the BharatBuild AI Assistant. I can help you find workers, machinery, materials, or estimate costs. How can I help you today?' }
+    { role: 'assistant', content: 'Hi! I am the **BharatBuild AI Assistant**. I can help you find workers, machinery, materials, or estimate costs. How can I help you today?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -78,7 +79,18 @@ const AIAssistantWidget = () => {
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${msg.role === 'user' ? 'bg-brand text-white rounded-br-none' : 'bg-white border border-border text-text-primary rounded-bl-none shadow-sm'}`}>
-                  {msg.content}
+
+                    <ReactMarkdown 
+                      components={{
+                        p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+                        li: ({node, ...props}) => <li className="mb-1" {...props} />,
+                        strong: ({node, ...props}) => <strong className={`font-bold ${msg.role === 'user' ? 'text-white underline' : 'text-brand-dark'}`} {...props} />,
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
                 </div>
               </div>
             ))}
