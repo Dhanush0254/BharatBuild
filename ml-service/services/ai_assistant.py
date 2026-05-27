@@ -37,11 +37,8 @@ class AIAssistant:
         
         response = generate(prompt)
         
-        if response == "AI_ERROR_QUOTA_EXCEEDED":
-            return "BharatBuild AI is currently at its limit (Gemini Free Tier). Please try again in about 60 seconds."
-        
-        if response and response.startswith("AI_ERROR:"):
-            # If it's a specific error, try to return fallback instead of just an error string
+        if response and response.startswith("AI_ERROR"):
+            # If it's a specific error or quota exceeded, return fallback instead of an error string
             return self._get_fallback_advice(message)
 
         if not response:
@@ -51,10 +48,13 @@ class AIAssistant:
 
     def _get_fallback_advice(self, message: str) -> str:
         msg = message.lower()
-        if "cement" in msg or "price" in msg or "rate" in msg:
-            return "To check the latest **Cement** or **Material** rates, please visit our **Market Rates** tab. Currently, cement is approximately ₹350-420 per bag in Telangana."
-        if "worker" in msg or "mestri" in msg or "plumber" in msg:
-            return "You can find verified **Mestris** and **Workers** in our directory. Filter by your location to see available professionals and their ratings."
+        if "cement" in msg or "price" in msg or "rate" in msg or "cost" in msg:
+            return "To check the latest **Cement** or **Material** rates, please visit our **Market Rates** tab. Currently, cement is approximately ₹350-420 per bag in Telangana, while steel is around ₹65 per kg. Let me know if you need specific material estimates!"
+        if "worker" in msg or "mestri" in msg or "plumber" in msg or "labor" in msg or "electrician" in msg or "painter" in msg:
+            return "You can find verified **Mestris** and **Workers** in our directory. Filter by your location to see available professionals, compare their ratings, and request quotes directly."
+        if "estimate" in msg or "calculator" in msg or "material" in msg or "sand" in msg or "brick" in msg:
+            return "For accurate material estimates, please use the **Material Estimator** tool on our platform. It calculates exact quantities of bricks, cement, sand, and steel based on your square footage and work type."
         
-        return "I'm currently in offline mode. Please check the **Market Rates** or **Directory** sections for construction info, or ensure the GEMINI_API_KEY is configured."
+        return "I can help you find workers, check material prices, or estimate construction costs. Just let me know what you're looking for! For detailed listings, you can always check our **Directory** or **Market Rates** sections."
+
 ai_assistant = AIAssistant()
