@@ -52,9 +52,11 @@ def generate(prompt: str, max_retries: int = 2) -> str:
 
     # Use stable models available in the free tier
     models_to_try = [
-        "gemini-1.5-flash",        # High quota, fast
-        "gemini-1.5-flash-8b",     # Even faster, lower quota
-        "gemini-1.0-pro",          # Legacy but stable
+        "gemini-2.5-flash",        # Latest recommended model
+        "gemini-2.0-flash",        # Fast and capable model
+        "gemini-1.5-flash",        # High quota, fast fallback
+        "gemini-1.5-flash-8b",     # Even faster, lower quota fallback
+        "gemini-1.0-pro",          # Legacy but stable fallback
     ]
 
     for model_name in models_to_try:
