@@ -157,6 +157,7 @@ PREMIUM_AREAS = ["jubilee hills", "banjara hills", "gachibowli", "hitech city",
 # ── Endpoints ─────────────────────────────────────────────────────────
 
 @app.get("/health")
+@app.head("/health")
 def health():
     return {
         "status": "healthy",
